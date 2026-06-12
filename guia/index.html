@@ -930,13 +930,21 @@ function openSpecies(t) {
     ...zs.map(z=>`<span class="stag">${z}</span>`),
   ].filter(Boolean).join('');
 
-  /* WoRMS and all links use scientific name */
+  /* External links — WoRMS for invertebrates, FishBase for fish, AlgaeBase for algae */
   const enc   = encodeURIComponent(sn);
   const genus = encodeURIComponent(sn.split(' ')[0]);
+  let dbLink = '';
+  if (mg === 'Peces') {
+    dbLink = `<a class="extbtn eb-worms" href="https://www.fishbase.se/summary/${encodeURIComponent(sn.replace(' ','_'))}" target="_blank">🐟 FishBase ↗</a>`;
+  } else if (mg === 'Algas') {
+    dbLink = `<a class="extbtn eb-worms" href="https://www.algaebase.org/search/species/?name=${enc}" target="_blank">🌿 AlgaeBase ↗</a>`;
+  } else {
+    dbLink = `<a class="extbtn eb-worms" href="https://www.marinespecies.org/aphia.php?p=taxlist&tName=${enc}&marine_only=true" target="_blank">🐚 WoRMS ↗</a>`;
+  }
   document.getElementById('spLinks').innerHTML = `
-    <a class="extbtn eb-inat"  href="${INAT_TAXON}${t.taxon_id}" target="_blank">🌿 iNaturalist ↗</a>
+    <a class="extbtn eb-inat"  href="${INAT_TAXON}${t.taxon_id}" target="_blank">🔭 iNaturalist ↗</a>
     <a class="extbtn eb-wiki"  href="https://es.wikipedia.org/wiki/${enc}" target="_blank">📖 Wikipedia ↗</a>
-    <a class="extbtn eb-worms" href="https://www.marinespecies.org/aphia.php?p=taxlist&tName=${enc}&marine_only=true" target="_blank">🐚 WoRMS ↗</a>
+    ${dbLink}
   `;
 
   /* ── Co-occurrence section ── */
