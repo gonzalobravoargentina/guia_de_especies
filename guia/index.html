@@ -173,7 +173,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 ================================================ */
 .card {
   position: relative; border-radius: var(--r);
-  overflow: hidden; aspect-ratio: 3/4;
+  overflow: hidden; aspect-ratio: 4/3;
   background: var(--s2); border: 1px solid var(--border);
   cursor: pointer;
   transition: transform .22s, box-shadow .22s, border-color .22s;
@@ -1074,12 +1074,11 @@ function renderCooc(taxonId) {
   wrap.innerHTML = top.map(e => {
     // ¿Está esta especie en la guía?
     const inGuide = taxa.find(t => t.taxon_id === e.taxon_id);
-    const displayName = e.common_name || e.scientific_name;
     return `
       <div class="cooc-chip ${inGuide ? 'clickable' : ''}"
            ${inGuide ? `data-guide-id="${inGuide.id}"` : ''}
-           title="${e.scientific_name}">
-        <span style="font-style:${e.common_name ? 'normal' : 'italic'}">${displayName}</span>
+           title="${e.common_name || e.scientific_name}">
+        <span style="font-style:italic">${e.scientific_name}</span>
         <span class="cooc-pct">${e.cooc_pct}%</span>
       </div>`;
   }).join('');
