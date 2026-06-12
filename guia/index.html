@@ -667,6 +667,7 @@ const scol = tag => tag ? (SCOL[tag.toLowerCase()] || 'var(--accent)') : 'var(--
 ──────────────────────────────────────────────── */
 let taxa      = [];
 let cnames    = {};   // taxon_id → common name
+let ancestryMap = {}; // taxon_id → ancestry sort key (ancestry + '/' + id)
 let coocData  = {};   // taxon_id → [{taxon_id, scientific_name, common_name, cooc_pct}]
 let descData  = {};   // taxon_id → HTML description string
 let fZona     = 'all';
@@ -742,6 +743,7 @@ async function fetchCnames() {
       let upd = false;
       (d.results||[]).forEach(tx => {
         if (tx.preferred_common_name) { cnames[tx.id] = tx.preferred_common_name; upd=true; }
+        if (tx.ancestry) { ancestryMap[tx.id] = tx.ancestry + '/' + tx.id; upd=true; }
       });
       if (upd) renderGrid();
     } catch {}
@@ -830,8 +832,18 @@ function filtered() {
 /* ────────────────────────────────────────────────
    RENDER GRID
 ──────────────────────────────────────────────── */
+function taxoSort(a, b) {
+  const ka = ancestryMap[a.taxon_id];
+  const kb = ancestryMap[b.taxon_id];
+  if (ka && kb) {
+    const pad = s => s.split('/').map(n => n.padStart(10,'0')).join('/');
+    return pad(ka).localeCompare(pad(kb));
+  }
+  return ka ? -1 : kb ? 1 : sci(a).localeCompare(sci(b));
+}
+
 function renderGrid() {
-  const list = filtered();
+  const list = filtered().sort(taxoSort);
   const pend = list.filter(t=>(t.guide_section_ids||[]).length===0).length;
   const statsbar = document.getElementById('statsbar');
   statsbar.innerHTML = `<strong>${list.length}</strong> de ${taxa.length} especies &nbsp;·&nbsp; <span style="color:var(--warm)">${pend} sin ficha</span>`;
