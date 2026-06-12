@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Especies Submarinas · Mar Argentino</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<style>
+/* ================================================
+   TOKENS
+================================================ */
+:root {
+  --bg:      #060e1a;
+  --s1:      #0b1a2e;
+  --s2:      #0e2038;
+  --s3:      #122848;
+  --border:  #1a3050;
+  --border2: #1e3a5c;
+  --accent:  #00b4d8;
+  --adim:    rgba(0,180,216,.13);
+  --aglow:   rgba(0,180,216,.32);
+  --warm:    #f4a261;
+  --text:    #ddeef8;
+  --text2:   #92b8cc;
+  --muted:   #4e6a82;
+  --muted2:  #2e4a60;
+  --r:       14px;
+  --rsm:     8px;
+}
+
+/* ================================================
+   RESET / BASE
+================================================ */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+img { display: block; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; }
+
+/* ================================================
+   HERO
+================================================ */
+.hero {
+  position: relative;
+  height: clamp(340px, 60vh, 560px);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: blur(3px);
+  transform: scale(1.13);
+  transition: opacity .6s;
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(6,14,26,.1) 0%, rgba(6,14,26,.5) 100%);
+  pointer-events: none;
+}
+.hero-content {
+  position: relative; z-index: 1;
+  text-align: center; padding: 0 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.hero-eyebrow {
+  font-size: .7rem; letter-spacing: 3.5px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
+}
+.hero-title {
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  font-weight: 800; letter-spacing: -1.5px; color: #eef9ff;
+  line-height: 1.05;
+}
+.hero-title em { font-style: normal; color: var(--accent); }
+.hero-sub {
+  margin-top: 14px; font-size: .9rem; color: var(--text2);
+  max-width: 480px;
+}
+.hero-badges {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; margin-top: 22px;
+}
+.hero-badge {
+  font-size: .67rem; padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  color: var(--text2); backdrop-filter: blur(4px);
+}
+.hero-credit {
+  position: absolute; bottom: 8px; right: 12px; z-index: 1;
+  font-size: .62rem; color: rgba(255,255,255,.3);
+}
+
+/* ================================================
+   FILTER BAR
+================================================ */
+.fbar {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(6,14,26,.97); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.frow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px; flex-wrap: wrap;
+}
+.frow + .frow { border-top: 1px solid rgba(26,48,80,.55); }
+.flbl {
+  font-size: .64rem; text-transform: uppercase; letter-spacing: 1.6px;
+  color: var(--muted2); min-width: 66px; flex-shrink: 0;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 13px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--s1);
+  color: var(--text2); font-size: .78rem; white-space: nowrap;
+  transition: border-color .15s, color .15s, background .15s, box-shadow .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.on {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 700;
+  box-shadow: 0 0 16px var(--aglow);
+}
+.cdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* sub-chips separator */
+.sub-sep {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  margin-left: 4px; padding-left: 12px;
+  border-left: 1px solid var(--border2);
+}
+
+/* search */
+.swrap { margin-left: auto; position: relative; }
+.swrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.sinput {
+  padding: 6px 12px 6px 30px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--s1);
+  color: var(--text); font-size: .8rem; width: 190px; outline: none;
+  transition: border-color .2s, width .2s;
+}
+.sinput:focus { border-color: var(--accent); width: 250px; }
+.sinput::placeholder { color: var(--muted); }
+
+/* ================================================
+   STATS
+================================================ */
+.statsbar {
+  padding: 7px 22px; font-size: .72rem; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 12px; align-items: center;
+}
+.statsbar strong { color: var(--text2); }
+
+/* ================================================
+   GRID
+================================================ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 14px 20px 60px;
+  max-width: 1600px; margin: 0 auto;
+}
+
+/* ================================================
+   CARD
+================================================ */
+.card {
+  position: relative; border-radius: var(--r);
+  overflow: hidden; aspect-ratio: 3/4;
+  background: var(--s2); border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform .22s, box-shadow .22s, border-color .22s;
+}
+.card:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: var(--accent);
+  box-shadow: 0 20px 50px rgba(0,0,0,.6), 0 0 0 1px var(--accent);
+}
+.card:hover .cimg { transform: scale(1.08); }
+.cimg { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
+.cph {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; color: var(--muted2);
+  background: linear-gradient(135deg, #0c2a40, #07182a);
+}
+.coverlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent 0%, rgba(3,8,18,.78) 30%, rgba(3,8,18,.97) 100%);
+  padding: 34px 13px 13px;
+}
+.csci {
+  font-style: italic; font-weight: 700; font-size: .92rem;
+  color: #eef9ff; line-height: 1.2; margin-bottom: 3px;
+}
+.ccommon { font-size: .74rem; color: var(--accent); font-weight: 500; margin-bottom: 5px; min-height: 13px; }
+.ctags { display: flex; flex-wrap: wrap; gap: 3px; }
+.ctag {
+  font-size: .6rem; padding: 1px 7px; border-radius: 8px;
+  background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.65);
+}
+.ctag.p { background: var(--adim); border-color: var(--aglow); color: var(--accent); }
+.cribbon {
+  position: absolute; top: 0; left: 0; right: 0;
+  background: rgba(180, 100, 20, .82);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: .62rem; font-weight: 700; letter-spacing: 1.2px;
+  padding: 4px 10px;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
+  border-radius: var(--r) var(--r) 0 0;
+}
+
+/* ================================================
+   LOADING / EMPTY
+================================================ */
+.cmsg {
+  grid-column: 1/-1; text-align: center;
+  padding: 80px 20px; color: var(--text2);
+}
+.spin {
+  width: 38px; height: 38px;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .85s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================================================
+   FULL-SCREEN SPECIES OVERLAY
+================================================ */
+#soverlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+}
+#soverlay.open {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  height: 100vh;
+  animation: sfadein .22s ease;
+}
+@keyframes sfadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Photo panel ── */
+#sphotos {
+  position: relative; height: 100vh;
+  background: #030811; overflow: hidden;
+}
+#spMainImg {
+  width: 100%; height: 100%;
+  object-fit: cover; transition: opacity .28s;
+}
+.spph {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7rem; color: var(--muted2);
+}
+.spvign {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to right, transparent 55%, rgba(6,14,26,.75) 100%),
+    radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,.3) 100%);
+}
+.spthumbs {
+  position: absolute; bottom: 22px; left: 20px;
+  display: flex; gap: 8px; flex-wrap: wrap; max-width: 320px;
+}
+.spthumb {
+  width: 60px; height: 60px; object-fit: cover;
+  border-radius: 9px; border: 2px solid transparent;
+  cursor: pointer; opacity: .55; transition: opacity .2s, border-color .2s;
+}
+.spthumb.on, .spthumb:hover { opacity: 1; border-color: var(--accent); }
+.spattrib {
+  position: absolute; bottom: 8px; right: 10px;
+  font-size: .62rem; color: rgba(255,255,255,.28);
+}
+
+/* ── Info panel ── */
+#spinfo {
+  height: 100vh; overflow-y: auto; overflow-x: hidden;
+  background: var(--s1); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+#spinfo::-webkit-scrollbar { width: 4px; }
+#spinfo::-webkit-scrollbar-track { background: transparent; }
+#spinfo::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.sptopbar {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--s1); border-bottom: 1px solid var(--border);
+  padding: 13px 20px;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.spback {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .78rem; color: var(--text2); background: none; padding: 4px 0;
+  transition: color .15s;
+}
+.spback:hover { color: var(--accent); }
+.spclose {
+  margin-left: auto;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--s2); border: 1px solid var(--border);
+  color: var(--text2); font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.spclose:hover { background: var(--s3); color: var(--text); }
+
+.spmain { padding: 28px 26px 0; }
+.spsci {
+  font-size: 1.9rem; font-style: italic; font-weight: 800;
+  color: #eef9ff; line-height: 1.05; margin-bottom: 5px;
+}
+.spcommon { font-size: 1rem; color: var(--accent); font-weight: 500; margin-bottom: 16px; min-height: 22px; }
+.sptags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 18px; }
+.stag {
+  font-size: .72rem; padding: 3px 11px; border-radius: 12px;
+  background: var(--s2); border: 1px solid var(--border); color: var(--text2);
+}
+.stag.g { background: var(--adim); border-color: var(--aglow); color: var(--accent); }
+
+/* external link buttons */
+.splinks { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 22px; }
+.extbtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: var(--rsm);
+  font-size: .78rem; font-weight: 600;
+  border: 1px solid; transition: all .15s; white-space: nowrap;
+}
+.eb-inat  { background: #2d5a10; border-color: #4a8c1c; color: #c8e896; }
+.eb-inat:hover  { background: #386a14; }
+.eb-wiki  { background: transparent; border-color: var(--border); color: var(--text2); }
+.eb-wiki:hover  { border-color: var(--accent); color: var(--accent); }
+.eb-worms { background: transparent; border-color: var(--border); color: var(--text2); }
+.eb-worms:hover { border-color: #26a69a; color: #26a69a; }
+
+hr.spdiv { border: none; border-top: 1px solid var(--border); }
+
+/* Tabs */
+.sptabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  padding: 0 26px; flex-shrink: 0;
+}
+.tabBtn {
+  padding: 10px 16px; font-size: .8rem; font-weight: 600;
+  color: var(--muted); background: none;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1px;
+}
+.tabBtn:hover { color: var(--text2); }
+.tabBtn.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Tab content */
+.tabarea { padding: 22px 26px 50px; flex: 1; }
+.tc { display: none; }
+.tc.on { display: block; }
+
+/* Description HTML */
+.desc-html { font-size: .87rem; color: var(--text2); line-height: 1.88; }
+.desc-html h1,.desc-html h2,.desc-html h3 { color: var(--text); font-size: .92rem; margin: 16px 0 7px; font-weight: 700; letter-spacing: .2px; }
+.desc-html p { margin-bottom: 10px; }
+.desc-html ul,.desc-html ol { padding-left: 20px; margin-bottom: 10px; }
+.desc-html li { margin-bottom: 4px; }
+.desc-html strong,.desc-html b { color: var(--text); }
+.desc-html a { color: var(--accent); }
+.desc-html table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: .82rem; }
+.desc-html td,.desc-html th { padding: 6px 10px; border: 1px solid var(--border); }
+.desc-html th { background: var(--s2); color: var(--text2); }
+
+.nofiche {
+  font-size: .84rem; color: var(--muted); font-style: italic;
+  padding: 18px; border: 1px dashed var(--border2);
+  border-radius: 10px; text-align: center; line-height: 1.6;
+}
+.nofiche small { font-style: normal; font-size: .75rem; color: var(--muted2); }
+
+/* Wikipedia */
+.wikitext { font-size: .87rem; color: var(--text2); line-height: 1.88; overflow: hidden; }
+.wikitext img { float: right; width: 110px; height: 110px; object-fit: cover; border-radius: 8px; margin: 0 0 12px 16px; flex-shrink: 0; }
+.wikilink { display: inline-block; margin-top: 12px; font-size: .8rem; color: var(--accent); }
+.wikilink:hover { text-decoration: underline; }
+
+/* Map */
+#spMap { height: 360px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.mapnote { font-size: .68rem; color: var(--muted); margin-top: 7px; text-align: right; }
+.mapnote a { color: var(--accent); }
+
+/* Co-occurrence section */
+.cooc-section { margin-bottom: 22px; }
+.cooc-title {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--muted); margin-bottom: 10px; font-weight: 600;
+}
+.cooc-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.cooc-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 20px;
+  background: var(--s2); border: 1px solid var(--border);
+  font-size: .78rem; color: var(--text2);
+  transition: border-color .15s, color .15s;
+  line-height: 1.2;
+}
+.cooc-chip.clickable { cursor: pointer; }
+.cooc-chip.clickable:hover { border-color: var(--accent); color: var(--text); }
+.cooc-pct {
+  font-size: .72rem; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px;
+  background: var(--adim); color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Async loading text */
+.aloading { font-size: .82rem; color: var(--muted); font-style: italic; }
+
+/* ================================================
+   RESPONSIVE
+================================================ */
+@media (max-width: 740px) {
+  #soverlay.open {
+    grid-template-columns: 1fr;
+    grid-template-rows: 48vw 1fr;
+    height: 100vh; overflow: hidden;
+  }
+  #sphotos { height: 48vw; }
+  .spvign { background: linear-gradient(to bottom, transparent 55%, rgba(6,14,26,.92) 100%); }
+  #spinfo { height: calc(100vh - 48vw); border-left: none; border-top: 1px solid var(--border); }
+  .spsci { font-size: 1.35rem; }
+  .spmain { padding: 18px 18px 0; }
+  .tabarea { padding: 16px 18px 40px; }
+
+  .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 9px; padding: 9px; }
+  .hero { height: clamp(260px, 44vh, 380px); }
+  .frow { padding: 8px 12px; }
+  .sinput { width: 150px; }
+  .sinput:focus { width: 170px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<section class="hero">
+  <img class="hero-bg" id="heroBg"
+     src="https://upload.wikimedia.org/wikipedia/commons/2/28/Arrecife_rocoso_9.jpg"
+     alt="Arrecife rocoso submarino, Argentina">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">Costa Patagónica · Mar Argentino</p>
+    <h1 class="hero-title">Guía de <em>Especies</em><br>Submarinas</h1>
+    <p class="hero-sub">Algas, invertebrados y peces de los fondos marinos de la Argentina</p>
+    <div class="hero-badges">
+      <span class="hero-badge">IBIOMAR · CONICET</span>
+      <span class="hero-badge">UNPSJB</span>
+      <span class="hero-badge">ProyectoSub</span>
+      <span class="hero-badge">Proyectoarrecife</span>
+      <span class="hero-badge">CC BY-SA</span>
+    </div>
+    <p style="margin-top:14px;font-size:.75rem;color:rgba(255,255,255,.45);letter-spacing:.3px">Curador: <strong style="color:rgba(255,255,255,.65)">Gonzalo Bravo</strong></p>
+    <button id="aboutBtn" style="margin-top:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:.72rem;padding:5px 16px;border-radius:20px;cursor:pointer;backdrop-filter:blur(4px);transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">ℹ️ Sobre esta guía</button>
+  </div>
+  <span class="hero-credit">📷 G. Bravo · CC BY-SA · Wikipedia</span>
+</section>
+
+<!-- ════════════════════ FILTER BAR ════════════════════ -->
+<div class="fbar">
+  <!-- Row 1: Ambiente -->
+  <div class="frow">
+    <span class="flbl">Ambiente</span>
+    <div class="chips" id="zonaChips">
+      <button class="chip on" data-zona="all">Todos</button>
+      <button class="chip" data-zona="intermareal">🌊 Intermareal</button>
+      <button class="chip" data-zona="submareal">🤿 Submareal</button>
+    </div>
+    <div class="swrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="sinput" id="searchInput" type="search" placeholder="Nombre científico o vulgar…">
+    </div>
+  </div>
+  <!-- Row 2: Tipo de fondo -->
+  <div class="frow">
+    <span class="flbl">Fondo</span>
+    <div class="chips" id="fondoChips">
+      <button class="chip on" data-fondo="all">Todos</button>
+      <button class="chip" data-fondo="roca">Roca</button>
+      <button class="chip" data-fondo="arena">Arena</button>
+    </div>
+  </div>
+  <!-- Row 3: Grupo principal + subgrupos dinámicos -->
+  <div class="frow">
+    <span class="flbl">Grupo</span>
+    <div class="chips" id="mainChips">
+      <button class="chip on" data-main="all">Todos</button>
+      <button class="chip" data-main="Algas"><span class="cdot" style="background:#56c96e"></span>Algas</button>
+      <button class="chip" data-main="Peces"><span class="cdot" style="background:#4ca3e8"></span>Peces</button>
+      <button class="chip" data-main="Invertebrados"><span class="cdot" style="background:#f0964a"></span>Invertebrados</button>
+    </div>
+    <div class="sub-sep" id="subSep" style="display:none">
+      <div class="chips" id="subChips"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ STATS ════════════════════ -->
+<div class="statsbar" id="statsbar"></div>
+
+<!-- ════════════════════ GRID ════════════════════ -->
+<div class="grid" id="grid">
+  <div class="cmsg"><div class="spin"></div>Cargando especies desde iNaturalist…</div>
+</div>
+
+<!-- ════════════════════ ABOUT MODAL ════════════════════ -->
+<div id="aboutOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(4,10,22,.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.7);animation:sfadein .2s ease">
+    <!-- header -->
+    <div style="padding:22px 28px 0;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <p style="font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Guía de Especies Submarinas · Mar Argentino</p>
+        <h2 style="font-size:1.3rem;font-weight:800;color:#eef9ff">Sobre esta guía</h2>
+      </div>
+      <button id="aboutClose" style="background:var(--s2);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:50%;font-size:.9rem;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:16px">✕</button>
+    </div>
+    <!-- body -->
+    <div style="padding:20px 28px 32px;font-size:.87rem;color:var(--text2);line-height:1.8">
+
+      <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 8px">¿Cómo funciona?</h3>
+      <p>Esta guía reúne las especies de fondos marinos de la costa argentina documentadas mediante buceo científico. Cada ficha integra tres fuentes en tiempo real:</p>
+      <ul style="padding-left:18px;margin:10px 0">
+        <li style="margin-bottom:6px"><strong style="color:var(--text)">iNaturalist</strong> — fotografías y registros de observación georreferenciados, con mapa de distribución de observaciones verificadas.</li>
+        <li style="margin-bottom:6px"><strong style="color:var(--text)">Wikipedia</strong> — resumen taxonómico y ecológico de cada especie.</li>
+        <li style="margin-bottom:6px"><strong style="color:var(--text)">WoRMS</strong> (World Register of Marine Species) — clasificación taxonómica actualizada y sinonimias.</li>
+      </ul>
+      <p>Los datos se cargan directamente desde cada plataforma, por lo que cualquier actualización en iNaturalist se refleja automáticamente en esta guía.</p>
+
+      <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:24px 0 8px">Contexto</h3>
+      <p>Esta guía fue elaborada en el marco de la tesis doctoral de <strong style="color:var(--text)">Gonzalo Bravo</strong> sobre comunidades de fondos rocosos submareales de la Patagonia argentina, con el apoyo de diversas instituciones y colaboradores de campo.</p>
+
+      <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:24px 0 8px">Colaboradores</h3>
+      <p style="color:var(--muted);font-style:italic">[ Completar con nombres de colaboradores ]</p>
+
+      <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:24px 0 8px">Instituciones</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+        <span style="font-size:.75rem;padding:4px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--text2)">IBIOMAR · CONICET</span>
+        <span style="font-size:.75rem;padding:4px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--text2)">UNPSJB</span>
+        <span style="font-size:.75rem;padding:4px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--text2)">ProyectoSub</span>
+        <span style="font-size:.75rem;padding:4px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--text2)">Proyectoarrecife</span>
+      </div>
+
+      <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:24px 0 8px">Licencia</h3>
+      <p>Contenido bajo licencia <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" style="color:var(--accent)">Creative Commons CC BY-SA 4.0</a>. Las fotografías pertenecen a sus respectivos autores según se indica en cada ficha.</p>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ SPECIES FULL-SCREEN ════════════════════ -->
+<div id="soverlay">
+
+  <!-- Left: Photos -->
+  <div id="sphotos">
+    <div class="spph" id="spPhPh">🐟</div>
+    <div class="spvign"></div>
+    <div class="spthumbs" id="spThumbs"></div>
+    <div class="spattrib" id="spAttrib"></div>
+  </div>
+
+  <!-- Right: Info -->
+  <div id="spinfo">
+
+    <!-- Top bar -->
+    <div class="sptopbar">
+      <button class="spback" id="spBack">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+        Volver a la guía
+      </button>
+      <button class="spclose" id="spClose">✕</button>
+    </div>
+
+    <!-- Main info -->
+    <div class="spmain">
+      <div class="spsci"  id="spSci"></div>
+      <div class="spcommon" id="spCommon"></div>
+      <div class="sptags"  id="spTags"></div>
+      <div class="splinks" id="spLinks"></div>
+      <div class="cooc-section" id="coocSection" style="display:none">
+        <div class="cooc-title">Suele observarse junto a</div>
+        <div class="cooc-chips" id="coocChips"></div>
+      </div>
+    </div>
+    <hr class="spdiv">
+
+    <!-- Tabs -->
+    <div class="sptabs">
+      <button class="tabBtn on" data-t="desc">Descripción</button>
+      <button class="tabBtn"    data-t="wiki">Wikipedia</button>
+      <button class="tabBtn"    data-t="map">Mapa</button>
+    </div>
+
+    <!-- Tab areas -->
+    <div class="tabarea">
+      <div class="tc on" id="t-desc"><p class="aloading" id="descEl">Cargando…</p></div>
+      <div class="tc"    id="t-wiki"><p class="aloading" id="wikiEl">Cargando…</p></div>
+      <div class="tc"    id="t-map">
+        <div id="spMap"></div>
+        <p class="mapnote" id="mapNote"></p>
+      </div>
+    </div>
+
+  </div><!-- /spinfo -->
+</div><!-- /soverlay -->
+
+<script>
+/* ────────────────────────────────────────────────
+   CONFIG
+──────────────────────────────────────────────── */
+const GUIDE_ID   = 11762;
+const OLD_API    = 'https://www.inaturalist.org';
+const V1_API     = 'https://api.inaturalist.org/v1';
+const INAT_TAXON = 'https://www.inaturalist.org/taxa/';
+
+/* Tags that map to each top-level group */
+// All sets in lowercase — comparison uses tag.toLowerCase()
+const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos',
+  'crustáceos','poliquetos','cnidarios','esponjas','briozoos','tunicados',
+  'anélidos','cefalópodos','hidrozoos','anemonas','corales','placoforos',
+  'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
+  'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
+const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
+const PEZ = new Set(['peces','pez','elasmobranquios','condricties','actinopterigios']);
+
+const SCOL = {
+  'nudibranquios':'#9b59d1','gasterópodos':'#d4a017','bivalvos':'#1a7abf',
+  'equinodermos':'#d44c4c','crustáceos':'#d47a20','poliquetos':'#20b2aa',
+  'cnidarios':'#7b68ee','esponjas':'#c88030','briozoos':'#4caf7a',
+  'tunicados':'#a050c0','algas':'#56c96e','peces':'#4ca3e8',
+  'holoturias':'#e67e5a','ofiuras':'#e84393','asteroideos':'#e8a000',
+  'equinoideos':'#b22222','crinoideos':'#c060a0',
+};
+// Helper: color lookup case-insensitive
+const scol = tag => tag ? (SCOL[tag.toLowerCase()] || 'var(--accent)') : 'var(--accent)';
+
+/* ────────────────────────────────────────────────
+   STATE
+──────────────────────────────────────────────── */
+let taxa      = [];
+let cnames    = {};   // taxon_id → common name
+let coocData  = {};   // taxon_id → [{taxon_id, scientific_name, common_name, cooc_pct}]
+let fZona     = 'all';
+let fFondo    = 'all';
+let fMain     = 'all';
+let fSub      = 'all';
+let q         = '';
+let leafMap   = null;
+
+/* ────────────────────────────────────────────────
+   TAG HELPERS
+──────────────────────────────────────────────── */
+const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=',''));
+const fondos = t => (t.tag_list||[]).filter(x=>x.startsWith('fondo=')).map(x=>x.replace('fondo=',''));
+const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona='));
+const sci   = t => t.name || t.display_name || '';
+
+function mainG(t) {
+  for (const tag of gtags(t)) {
+    const tl = tag.toLowerCase();
+    if (ALG.has(tl)) return 'Algas';
+    if (PEZ.has(tl)) return 'Peces';
+    if (INV.has(tl)) return 'Invertebrados';
+  }
+  return 'Invertebrados';
+}
+function subG(t) {
+  for (const tag of gtags(t)) {
+    const tl = tag.toLowerCase();
+    if (INV.has(tl)||ALG.has(tl)||PEZ.has(tl)) return tag; // return original casing for display
+  }
+  return null;
+}
+
+/* ────────────────────────────────────────────────
+   LOAD DATA
+──────────────────────────────────────────────── */
+async function loadGuide() {
+  try {
+    const r = await fetch(`${OLD_API}/guide_taxa.json?guide_id=${GUIDE_ID}&per_page=200`);
+    const d = await r.json();
+    taxa = (d.guide_taxa||[]).sort((a,b)=>sci(a).localeCompare(sci(b)));
+    buildSubChips('all');
+    renderGrid();
+    fetchCnames();
+    fetchCooc();
+  } catch {
+    grid.innerHTML = '<div class="cmsg">⚠️ Error al cargar la guía. Verificá tu conexión.</div>';
+  }
+}
+
+async function fetchCooc() {
+  try {
+    const r = await fetch('./cooccurrence.json');
+    if (r.ok) { coocData = await r.json(); }
+  } catch {}
+}
+
+async function fetchCnames() {
+  const ids = taxa.map(t=>t.taxon_id);
+  for (let i=0; i<ids.length; i+=30) {
+    try {
+      const r = await fetch(`${V1_API}/taxa?id=${ids.slice(i,i+30).join(',')}&per_page=30&locale=es-AR`);
+      const d = await r.json();
+      let upd = false;
+      (d.results||[]).forEach(tx => {
+        if (tx.preferred_common_name) { cnames[tx.id] = tx.preferred_common_name; upd=true; }
+      });
+      if (upd) renderGrid();
+    } catch {}
+  }
+}
+
+/* ────────────────────────────────────────────────
+   FILTER EVENTS
+──────────────────────────────────────────────── */
+document.getElementById('zonaChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-zona]'); if(!b) return;
+  fZona = b.dataset.zona;
+  setOn('zonaChips','[data-zona]','zona',fZona);
+  renderGrid();
+});
+document.getElementById('fondoChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-fondo]'); if(!b) return;
+  fFondo = b.dataset.fondo;
+  setOn('fondoChips','[data-fondo]','fondo',fFondo);
+  renderGrid();
+});
+document.getElementById('mainChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-main]'); if(!b) return;
+  fMain = b.dataset.main; fSub = 'all';
+  setOn('mainChips','[data-main]','main',fMain);
+  buildSubChips(fMain);
+  renderGrid();
+});
+document.getElementById('subChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-sub]'); if(!b) return;
+  fSub = b.dataset.sub;
+  setOn('subChips','[data-sub]','sub',fSub);
+  renderGrid();
+});
+document.getElementById('searchInput').addEventListener('input', e => {
+  q = e.target.value.toLowerCase().trim();
+  renderGrid();
+});
+function setOn(cid,sel,attr,val) {
+  document.getElementById(cid).querySelectorAll(sel).forEach(b=>b.classList.toggle('on',b.dataset[attr]===val));
+}
+
+/* ────────────────────────────────────────────────
+   BUILD SUBGROUP CHIPS
+──────────────────────────────────────────────── */
+function buildSubChips(main) {
+  const sep  = document.getElementById('subSep');
+  const wrap = document.getElementById('subChips');
+  wrap.innerHTML = '';
+  if (main==='all'||main==='Algas'||main==='Peces') { sep.style.display='none'; return; }
+  const map = new Map();
+  taxa.forEach(t => { if(mainG(t)===main){ const s=subG(t); if(s) map.set(s,(map.get(s)||0)+1); } });
+  if (map.size < 2) { sep.style.display='none'; return; }
+  sep.style.display = 'flex';
+  wrap.appendChild(mkChip('Todos','sub','all',true,null));
+  [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([sub,cnt]) => {
+    wrap.appendChild(mkChip(`${sub} <small style="opacity:.55">${cnt}</small>`,'sub',sub,false,scol(sub)||'#888'));
+  });
+}
+function mkChip(html,attr,val,on,color) {
+  const b = document.createElement('button');
+  b.className='chip'+(on?' on':''); b.dataset[attr]=val;
+  if (color) { const d=document.createElement('span'); d.className='cdot'; d.style.background=color; b.appendChild(d); }
+  const s=document.createElement('span'); s.innerHTML=html; b.appendChild(s);
+  return b;
+}
+
+/* ────────────────────────────────────────────────
+   FILTER
+──────────────────────────────────────────────── */
+function filtered() {
+  return taxa.filter(t => {
+    if (fZona !=='all' && !zonas(t).includes(fZona))   return false;
+    if (fFondo!=='all' && !fondos(t).includes(fFondo)) return false;
+    if (fMain!=='all' && mainG(t)!==fMain) return false;
+    if (fSub !=='all' && subG(t) !==fSub)  return false;
+    if (q) {
+      const s = sci(t).toLowerCase();
+      const c = (cnames[t.taxon_id]||'').toLowerCase();
+      if (!s.includes(q)&&!c.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ────────────────────────────────────────────────
+   RENDER GRID
+──────────────────────────────────────────────── */
+function renderGrid() {
+  const list = filtered();
+  const pend = list.filter(t=>(t.guide_section_ids||[]).length===0).length;
+  const statsbar = document.getElementById('statsbar');
+  statsbar.innerHTML = `<strong>${list.length}</strong> de ${taxa.length} especies &nbsp;·&nbsp; <span style="color:var(--warm)">${pend} sin ficha</span>`;
+  const grid = document.getElementById('grid');
+  if (!list.length) { grid.innerHTML='<div class="cmsg">No se encontraron especies.</div>'; return; }
+  grid.innerHTML = list.map(cardHTML).join('');
+  grid.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = taxa.find(x=>String(x.id)===el.dataset.id);
+      if (t) openSpecies(t);
+    });
+  });
+}
+
+/* ────────────────────────────────────────────────
+   CARD HTML
+──────────────────────────────────────────────── */
+function cardHTML(t) {
+  const ph = (t.guide_photos||[])[0];
+  const sn = sci(t);
+  const cn = cnames[t.taxon_id]||'';
+  const sb = subG(t);
+  const zs = zonas(t);
+  const pend = (t.guide_section_ids||[]).length===0;
+  const icon = mainG(t)==='Peces'?'🐟':mainG(t)==='Algas'?'🌿':'🦀';
+  const col  = scol(sb);
+  return `
+  <div class="card" data-id="${t.id}">
+    ${ph?`<img class="cimg" src="${ph.medium_url}" alt="${sn}" loading="lazy">`:`<div class="cph">${icon}</div>`}
+    ${pend?`<div class="cribbon">en proceso</div>`:''}
+    <div class="coverlay">
+      <div class="csci">${sn}</div>
+      <div class="ccommon">${cn}</div>
+      <div class="ctags">
+        ${sb?`<span class="ctag p" style="color:${col};border-color:${col}40">${sb}</span>`:''}
+        ${zs.map(z=>`<span class="ctag">${z}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ────────────────────────────────────────────────
+   OPEN SPECIES
+──────────────────────────────────────────────── */
+function openSpecies(t) {
+  const sn     = sci(t);
+  const cn     = cnames[t.taxon_id]||'';
+  const photos = t.guide_photos||[];
+  const mg     = mainG(t);
+  const sb     = subG(t);
+  const zs     = zonas(t);
+
+  /* ── Photos ── */
+  const photosDiv = document.getElementById('sphotos');
+  photosDiv.querySelectorAll('#spMainImg').forEach(el=>el.remove());
+  const ph       = document.getElementById('spPhPh');
+  const thumbWrap= document.getElementById('spThumbs');
+  const attrib   = document.getElementById('spAttrib');
+  thumbWrap.innerHTML='';
+
+  if (photos.length>0) {
+    ph.style.display='none';
+    const img = document.createElement('img');
+    img.id='spMainImg'; img.src=photos[0].large_url; img.alt=sn;
+    photosDiv.insertBefore(img, photosDiv.querySelector('.spvign'));
+    const ad = photos[0].photo;
+    attrib.textContent = ad?.attribution||'';
+    if (photos.length>1) {
+      photos.forEach((p,i) => {
+        const th=document.createElement('img');
+        th.className='spthumb'+(i===0?' on':'');
+        th.src=p.small_url; th.dataset.large=p.large_url; th.alt='';
+        th.addEventListener('click',()=>{
+          document.querySelectorAll('.spthumb').forEach(x=>x.classList.remove('on'));
+          th.classList.add('on');
+          const mi=document.getElementById('spMainImg');
+          if(mi){mi.style.opacity='0';setTimeout(()=>{mi.src=th.dataset.large;mi.style.opacity='1';},220);}
+        });
+        thumbWrap.appendChild(th);
+      });
+    }
+  } else {
+    ph.style.display='flex';
+    ph.textContent=mg==='Peces'?'🐟':mg==='Algas'?'🌿':'🦀';
+    attrib.textContent='';
+  }
+
+  /* ── Text info ── */
+  document.getElementById('spSci').textContent    = sn;
+  document.getElementById('spCommon').textContent = cn;
+
+  const col = scol(sb);
+  document.getElementById('spTags').innerHTML = [
+    sb?`<span class="stag g" style="color:${col};border-color:${col}40">${sb}</span>`:'',
+    `<span class="stag">${mg}</span>`,
+    ...zs.map(z=>`<span class="stag">${z}</span>`),
+  ].filter(Boolean).join('');
+
+  /* WoRMS and all links use scientific name */
+  const enc   = encodeURIComponent(sn);
+  const genus = encodeURIComponent(sn.split(' ')[0]);
+  document.getElementById('spLinks').innerHTML = `
+    <a class="extbtn eb-inat"  href="${INAT_TAXON}${t.taxon_id}" target="_blank">🌿 iNaturalist ↗</a>
+    <a class="extbtn eb-wiki"  href="https://es.wikipedia.org/wiki/${enc}" target="_blank">📖 Wikipedia ↗</a>
+    <a class="extbtn eb-worms" href="https://www.marinespecies.org/aphia.php?p=taxlist&tName=${enc}&marine_only=true" target="_blank">🐚 WoRMS ↗</a>
+  `;
+
+  /* ── Co-occurrence section ── */
+  renderCooc(t.taxon_id);
+
+  /* ── Tabs reset ── */
+  document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('on',b.dataset.t==='desc'));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.toggle('on',c.id==='t-desc'));
+  document.getElementById('descEl').innerHTML='<p class="aloading">Cargando descripción…</p>';
+  document.getElementById('wikiEl').innerHTML='<p class="aloading">Cargando Wikipedia…</p>';
+  document.getElementById('mapNote').innerHTML='';
+  if(leafMap){leafMap.remove();leafMap=null;}
+
+  /* ── Show overlay ── */
+  document.getElementById('soverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+
+  /* ── Tab handlers (fresh clone to avoid stale closures) ── */
+  let mapInit=false;
+  document.querySelectorAll('.tabBtn').forEach(btn=>{
+    const nb=btn.cloneNode(true);
+    btn.parentNode.replaceChild(nb,btn);
+    nb.addEventListener('click',()=>{
+      document.querySelectorAll('.tabBtn').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
+      nb.classList.add('on');
+      document.getElementById(`t-${nb.dataset.t}`).classList.add('on');
+      if(nb.dataset.t==='map'&&!mapInit){mapInit=true;initMap(t.taxon_id);}
+    });
+  });
+
+  /* ── Load async data ── */
+  loadDesc(t);
+  loadWiki(sn);
+}
+
+/* ────────────────────────────────────────────────
+   LOAD DESCRIPTION (guide_sections)
+──────────────────────────────────────────────── */
+async function loadDesc(t) {
+  const el = document.getElementById('descEl'); if(!el) return;
+  const ids = t.guide_section_ids||[];
+  if(!ids.length){
+    el.innerHTML='<div class="nofiche">Esta especie todavía no tiene descripción en la guía.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(`${OLD_API}/guide_sections/${ids[0]}.json`);
+    if(!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    const sec = d.guide_section||d;
+    const body = sec.body||sec.description||sec.content||'';
+    el.innerHTML = body.trim()
+      ? `<div class="desc-html">${body}</div>`
+      : `<div class="nofiche">La descripción está vacía en iNaturalist.</div>`;
+  } catch {
+    el.innerHTML=`<div class="nofiche">No se pudo cargar la descripción.<br><small>Si abrís el archivo como <em>file://</em>, el navegador bloquea las peticiones externas. Servilo desde un servidor local o GitHub Pages.</small></div>`;
+  }
+}
+
+/* ────────────────────────────────────────────────
+   CO-OCCURRENCE SECTION
+──────────────────────────────────────────────── */
+function renderCooc(taxonId) {
+  const section = document.getElementById('coocSection');
+  const wrap    = document.getElementById('coocChips');
+  if (!section || !wrap) return;
+
+  const entries = coocData[String(taxonId)];
+  if (!entries || entries.length === 0) { section.style.display = 'none'; return; }
+
+  // Top 6, mínimo 5% para filtrar ruido
+  const top = entries.filter(e => e.cooc_pct >= 5).slice(0, 6);
+  if (top.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  wrap.innerHTML = top.map(e => {
+    // ¿Está esta especie en la guía?
+    const inGuide = taxa.find(t => t.taxon_id === e.taxon_id);
+    const displayName = e.common_name || e.scientific_name;
+    return `
+      <div class="cooc-chip ${inGuide ? 'clickable' : ''}"
+           ${inGuide ? `data-guide-id="${inGuide.id}"` : ''}
+           title="${e.scientific_name}">
+        <span style="font-style:${e.common_name ? 'normal' : 'italic'}">${displayName}</span>
+        <span class="cooc-pct">${e.cooc_pct}%</span>
+      </div>`;
+  }).join('');
+
+  // Click en especies de la guía → abrir su ficha
+  wrap.querySelectorAll('.cooc-chip.clickable').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = taxa.find(x => String(x.id) === chip.dataset.guideId);
+      if (t) openSpecies(t);
+    });
+  });
+}
+
+/* ────────────────────────────────────────────────
+   WIKISPECIES LINK RESOLVER
+   Try full species name; fall back to genus
+──────────────────────────────────────────────── */
+async function resolveWikispeciesUrl(sciName, genusEnc) {
+  const btn = document.getElementById('wikispeciesBtn');
+  if (!btn) return;
+  // Only worth trying if it's a binomial (has a space)
+  if (!sciName.includes(' ')) return;
+  try {
+    const r = await fetch(
+      `https://species.wikimedia.org/api/rest_v1/page/summary/${encodeURIComponent(sciName)}`,
+      { method: 'HEAD' }
+    );
+    if (r.ok) {
+      btn.href = `https://species.wikimedia.org/wiki/${encodeURIComponent(sciName)}`;
+    }
+    // else keep genus URL already set
+  } catch {}
+}
+
+/* ────────────────────────────────────────────────
+   LOAD WIKIPEDIA
+──────────────────────────────────────────────── */
+async function loadWiki(name) {
+  const el=document.getElementById('wikiEl'); if(!el) return;
+  try {
+    let r=await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+    if(!r.ok) r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+    if(!r.ok) throw new Error();
+    const d=await r.json();
+    if(d.extract){
+      el.innerHTML=`
+        <div class="wikitext">
+          ${d.thumbnail?.source?`<img src="${d.thumbnail.source}" alt="">`:''}
+          <p>${d.extract}</p>
+        </div>
+        <a class="wikilink" href="${d.content_urls?.desktop?.page||`https://es.wikipedia.org/wiki/${encodeURIComponent(name)}`}" target="_blank">
+          Leer artículo completo en Wikipedia →
+        </a>`;
+    } else {
+      el.innerHTML=`<p class="aloading">Sin artículo en Wikipedia para <em>${name}</em>.</p>`;
+    }
+  } catch {
+    el.innerHTML=`<p class="aloading">Sin artículo en Wikipedia para <em>${name}</em>.</p>`;
+  }
+}
+
+/* ────────────────────────────────────────────────
+   LEAFLET MAP
+──────────────────────────────────────────────── */
+function initMap(taxonId) {
+  if(!window.L) return;
+  if(leafMap){leafMap.remove();leafMap=null;}
+  leafMap=L.map('spMap',{zoomControl:true}).setView([-40,-62.5],4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:18
+  }).addTo(leafMap);
+  L.tileLayer(`https://api.inaturalist.org/v1/colored_heatmap/{z}/{x}/{y}.png?taxon_id=${taxonId}`,{
+    attribution:'© iNaturalist',opacity:.9,maxZoom:18
+  }).addTo(leafMap);
+  setTimeout(()=>leafMap?.invalidateSize(),120);
+  document.getElementById('mapNote').innerHTML=
+    `Observaciones verificadas (research grade) · <a href="https://www.inaturalist.org/observations?taxon_id=${taxonId}&place_id=7033&quality_grade=research" target="_blank">ver en Argentina →</a>`;
+}
+
+/* ────────────────────────────────────────────────
+   CLOSE
+──────────────────────────────────────────────── */
+function closeSpecies() {
+  document.getElementById('soverlay').classList.remove('open');
+  document.body.style.overflow='';
+  if(leafMap){leafMap.remove();leafMap=null;}
+}
+document.getElementById('spClose').addEventListener('click',closeSpecies);
+document.getElementById('spBack').addEventListener('click',closeSpecies);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSpecies();});
+
+/* ────────────────────────────────────────────────
+   HERO BACKGROUND IMAGE
+   Fetch direct URL from Wikimedia API (avoids redirect issues)
+──────────────────────────────────────────────── */
+// Hero background is hardcoded with direct upload.wikimedia.org URL (no redirects needed)
+
+/* ────────────────────────────────────────────────
+   INIT
+──────────────────────────────────────────────── */
+/* About modal */
+const aboutOverlay = document.getElementById('aboutOverlay');
+document.getElementById('aboutBtn').addEventListener('click', () => {
+  aboutOverlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('aboutClose').addEventListener('click', () => {
+  aboutOverlay.style.display = 'none';
+  document.body.style.overflow = '';
+});
+aboutOverlay.addEventListener('click', e => {
+  if (e.target === aboutOverlay) { aboutOverlay.style.display='none'; document.body.style.overflow=''; }
+});
+
+loadGuide();
+</script>
+</body>
+</html>
