@@ -596,10 +596,6 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <div class="spcommon" id="spCommon"></div>
       <div class="sptags"  id="spTags"></div>
       <div class="splinks" id="spLinks"></div>
-      <div class="cooc-section" id="coocSection" style="display:none">
-        <div class="cooc-title">Suele observarse junto a</div>
-        <div class="cooc-chips" id="coocChips"></div>
-      </div>
     </div>
     <hr class="spdiv">
 
@@ -612,7 +608,13 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 
     <!-- Tab areas -->
     <div class="tabarea">
-      <div class="tc on" id="t-desc"><p class="aloading" id="descEl">Cargando…</p></div>
+      <div class="tc on" id="t-desc">
+        <div class="aloading" id="descEl">Cargando…</div>
+        <div class="cooc-section" id="coocSection" style="display:none">
+          <div class="cooc-title">Suele observarse junto a <span style="font-weight:400;font-size:.6rem;color:var(--muted);text-transform:none;letter-spacing:0">· basado en obs. de Golfo Nuevo</span></div>
+          <div class="cooc-chips" id="coocChips"></div>
+        </div>
+      </div>
       <div class="tc"    id="t-wiki"><p class="aloading" id="wikiEl">Cargando…</p></div>
       <div class="tc"    id="t-map">
         <div id="spMap"></div>
@@ -989,7 +991,7 @@ function renderCooc(taxonId) {
   if (!entries || entries.length === 0) { section.style.display = 'none'; return; }
 
   // Top 6, mínimo 5% para filtrar ruido
-  const top = entries.filter(e => e.cooc_pct >= 5).slice(0, 6);
+  const top = entries.filter(e => e.cooc_pct >= 5).slice(0, 10);
   if (top.length === 0) { section.style.display = 'none'; return; }
 
   section.style.display = 'block';
