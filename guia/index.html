@@ -659,6 +659,7 @@ const scol = tag => tag ? (SCOL[tag.toLowerCase()] || 'var(--accent)') : 'var(--
 let taxa      = [];
 let cnames    = {};   // taxon_id → common name
 let coocData  = {};   // taxon_id → [{taxon_id, scientific_name, common_name, cooc_pct}]
+let descData  = {};   // taxon_id → HTML description string
 let fZona     = 'all';
 let fFondo    = 'all';
 let fMain     = 'all';
@@ -670,7 +671,7 @@ let leafMap   = null;
    TAG HELPERS
 ──────────────────────────────────────────────── */
 const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=',''));
-const fondos = t => (t.tag_list||[]).filter(x=>x.startsWith('fondo=')).map(x=>x.replace('fondo=',''));
+const fondos = t => (t.tag_list||[]).filter(x=>x.toLowerCase().startsWith('fondo=')).map(x=>x.replace(/fondo=/i,'').toLowerCase().trim());
 const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona='));
 const sci   = t => t.name || t.display_name || '';
 
@@ -703,6 +704,7 @@ async function loadGuide() {
     renderGrid();
     fetchCnames();
     fetchCooc();
+    fetchDescs();
   } catch {
     grid.innerHTML = '<div class="cmsg">⚠️ Error al cargar la guía. Verificá tu conexión.</div>';
   }
@@ -712,6 +714,13 @@ async function fetchCooc() {
   try {
     const r = await fetch('./cooccurrence.json');
     if (r.ok) { coocData = await r.json(); }
+  } catch {}
+}
+
+async function fetchDescs() {
+  try {
+    const r = await fetch('./descriptions.json');
+    if (r.ok) { descData = await r.json(); }
   } catch {}
 }
 
@@ -956,26 +965,15 @@ function openSpecies(t) {
 }
 
 /* ────────────────────────────────────────────────
-   LOAD DESCRIPTION (guide_sections)
+   LOAD DESCRIPTION (desde descriptions.json pre-generado)
 ──────────────────────────────────────────────── */
 async function loadDesc(t) {
   const el = document.getElementById('descEl'); if(!el) return;
-  const ids = t.guide_section_ids||[];
-  if(!ids.length){
-    el.innerHTML='<div class="nofiche">Esta especie todavía no tiene descripción en la guía.</div>';
-    return;
-  }
-  try {
-    const r = await fetch(`${OLD_API}/guide_sections/${ids[0]}.json`);
-    if(!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    const sec = d.guide_section||d;
-    const body = sec.body||sec.description||sec.content||'';
-    el.innerHTML = body.trim()
-      ? `<div class="desc-html">${body}</div>`
-      : `<div class="nofiche">La descripción está vacía en iNaturalist.</div>`;
-  } catch {
-    el.innerHTML=`<div class="nofiche">No se pudo cargar la descripción.<br><small>Si abrís el archivo como <em>file://</em>, el navegador bloquea las peticiones externas. Servilo desde un servidor local o GitHub Pages.</small></div>`;
+  const body = descData[String(t.taxon_id)] || '';
+  if(body.trim()) {
+    el.innerHTML = `<div class="desc-html">${body}</div>`;
+  } else {
+    el.innerHTML = '<div class="nofiche">Esta especie todavía no tiene descripción en la guía iNaturalist.</div>';
   }
 }
 
