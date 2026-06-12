@@ -410,7 +410,8 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 .desc-html .desc-section { margin-top: 14px; }
 .desc-html .desc-section-title { font-size: .8rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
 .desc-html .desc-refs { list-style: none; padding: 0; margin: 6px 0 0; }
-.desc-html .desc-refs li { font-size: .75rem; color: var(--muted); line-height: 1.5; padding: 5px 0 5px 10px; border-left: 2px solid var(--border); margin-bottom: 6px; }
+.desc-html .desc-refs li { font-size: .75rem; color: var(--muted); line-height: 1.5; padding: 8px 0 8px 10px; border-left: 2px solid var(--border); margin-bottom: 10px; }
+.desc-html .desc-refs li + li { border-top: 1px solid var(--border); padding-top: 10px; }
 .cooc-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .cooc-chip {
   display: inline-flex; align-items: center; gap: 7px;
@@ -1010,8 +1011,10 @@ function formatDesc(raw) {
 
   // Procesar referencias: separar cada cita
   if(refsRaw) {
-    // Split: después de año (4 dígitos) + info de página, antes de nuevo apellido+iniciales
-    const parts = refsRaw.split(/(?<=\d{3,4}[^\(]{0,60})\s+(?=[A-ZÁÉÍÓÚÜ][a-záéíóúü]+(?:\s+[A-Z][a-z]+)*\s+[A-Z]{1,3}[,\s])/);
+    // Split entre citas: después de DOI, página, año entre paréntesis o número de página
+    // seguido de espacio + nuevo apellido (Capital + minúsculas + coma/espacio + iniciales)
+    const refAuthorPattern = /[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+,?\s+[A-Z]\./;
+    const parts = refsRaw.split(/(?:(?<=doi:\S{5,})|(?<=\d{2,4}[)\]]\.?))\s+(?=[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+,\s*[A-Z]\.)/);
     const items = parts.map(r => r.trim()).filter(Boolean);
     const listHTML = items.length > 1
       ? `<ul class="desc-refs">${items.map(r=>`<li>${r}</li>`).join('')}</ul>`
@@ -1054,12 +1057,11 @@ function renderCooc(taxonId) {
   wrap.innerHTML = top.map(e => {
     // ¿Está esta especie en la guía?
     const inGuide = taxa.find(t => t.taxon_id === e.taxon_id);
-    const displayName = e.common_name || e.scientific_name;
     return `
       <div class="cooc-chip ${inGuide ? 'clickable' : ''}"
            ${inGuide ? `data-guide-id="${inGuide.id}"` : ''}
-           title="${e.scientific_name}">
-        <span style="font-style:${e.common_name ? 'normal' : 'italic'}">${displayName}</span>
+           title="${e.common_name || e.scientific_name}">
+        <span style="font-style:italic">${e.scientific_name}</span>
         <span class="cooc-pct">${e.cooc_pct}%</span>
       </div>`;
   }).join('');
