@@ -739,7 +739,7 @@ async function loadGuide() {
   try {
     const r = await fetch(`${OLD_API}/guide_taxa.json?guide_id=${GUIDE_ID}&per_page=200`);
     const d = await r.json();
-    taxa = d.guide_taxa||[];
+    taxa = Array.isArray(d) ? d : (d.guide_taxa||[]);
     buildSubChips('all');
     renderGrid();
     fetchCnames();
