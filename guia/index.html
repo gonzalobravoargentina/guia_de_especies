@@ -184,7 +184,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   box-shadow: 0 20px 50px rgba(0,0,0,.6), 0 0 0 1px var(--accent);
 }
 .card:hover .cimg { transform: scale(1.08); }
-.cimg { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
+.cimg { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; transition: transform .4s ease; }
 .cph {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -254,35 +254,58 @@ button { font-family: inherit; cursor: pointer; border: none; }
 #sphotos {
   position: relative; height: 100vh;
   background: #030811; overflow: hidden;
+  display: flex; flex-direction: column;
 }
 #spMainImg {
-  width: 100%; height: 100%;
-  object-fit: cover; transition: opacity .28s;
+  flex: 1; width: 100%; min-height: 0;
+  object-fit: cover; object-position: center 30%;
+  transition: opacity .25s;
 }
 .spph {
-  width: 100%; height: 100%;
+  flex: 1; width: 100%;
   display: flex; align-items: center; justify-content: center;
   font-size: 7rem; color: var(--muted2);
 }
 .spvign {
-  position: absolute; inset: 0; pointer-events: none;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 80px;
+  pointer-events: none;
   background:
     linear-gradient(to right, transparent 55%, rgba(6,14,26,.75) 100%),
     radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,.3) 100%);
 }
-.spthumbs {
-  position: absolute; bottom: 22px; left: 20px;
-  display: flex; gap: 8px; flex-wrap: wrap; max-width: 320px;
+/* Gallery strip */
+.gallery-strip {
+  flex: 0 0 auto; display: flex; gap: 5px;
+  padding: 8px 10px; background: rgba(3,8,17,.9);
+  border-top: 1px solid rgba(255,255,255,.07);
+  overflow-x: auto; scrollbar-width: none;
 }
+.gallery-strip::-webkit-scrollbar { display: none; }
 .spthumb {
-  width: 60px; height: 60px; object-fit: cover;
-  border-radius: 9px; border: 2px solid transparent;
-  cursor: pointer; opacity: .55; transition: opacity .2s, border-color .2s;
+  flex: 0 0 56px; height: 56px; object-fit: cover;
+  border-radius: 7px; border: 2px solid transparent;
+  cursor: pointer; opacity: .5; transition: opacity .18s, border-color .18s;
 }
 .spthumb.on, .spthumb:hover { opacity: 1; border-color: var(--accent); }
+/* Arrow buttons */
+.gallery-btn {
+  position: absolute; top: calc(50% - 40px); transform: translateY(-50%);
+  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.15);
+  color: #fff; width: 34px; height: 34px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; transition: background .15s; z-index: 3;
+}
+.gallery-btn:hover { background: rgba(0,0,0,.8); }
+.gallery-btn.prev { left: 10px; }
+.gallery-btn.next { right: 10px; }
+.gallery-counter {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(0,0,0,.55); color: rgba(255,255,255,.7);
+  font-size: .65rem; padding: 2px 8px; border-radius: 10px; z-index: 3;
+}
 .spattrib {
-  position: absolute; bottom: 8px; right: 10px;
-  font-size: .62rem; color: rgba(255,255,255,.28);
+  position: absolute; bottom: 85px; right: 10px;
+  font-size: .6rem; color: rgba(255,255,255,.25);
 }
 
 /* ── Info panel ── */
@@ -343,8 +366,12 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .eb-inat:hover  { background: #386a14; }
 .eb-wiki  { background: transparent; border-color: var(--border); color: var(--text2); }
 .eb-wiki:hover  { border-color: var(--accent); color: var(--accent); }
-.eb-worms { background: transparent; border-color: var(--border); color: var(--text2); }
-.eb-worms:hover { border-color: #26a69a; color: #26a69a; }
+.eb-worms     { background: transparent; border-color: var(--border); color: var(--text2); }
+.eb-worms:hover     { border-color: #26a69a; color: #26a69a; }
+.eb-fishbase  { background: transparent; border-color: var(--border); color: var(--text2); }
+.eb-fishbase:hover  { border-color: #1976d2; color: #1976d2; }
+.eb-algaebase { background: transparent; border-color: var(--border); color: var(--text2); }
+.eb-algaebase:hover { border-color: #558b2f; color: #558b2f; }
 
 hr.spdiv { border: none; border-top: 1px solid var(--border); }
 
@@ -582,8 +609,11 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
   <div id="sphotos">
     <div class="spph" id="spPhPh">🐟</div>
     <div class="spvign"></div>
-    <div class="spthumbs" id="spThumbs"></div>
+    <button class="gallery-btn prev" id="galleryPrev">&#8249;</button>
+    <button class="gallery-btn next" id="galleryNext">&#8250;</button>
+    <div class="gallery-counter" id="galleryCounter" style="display:none"></div>
     <div class="spattrib" id="spAttrib"></div>
+    <div class="gallery-strip" id="spThumbs"></div>
   </div>
 
   <!-- Right: Info -->
@@ -709,7 +739,7 @@ async function loadGuide() {
   try {
     const r = await fetch(`${OLD_API}/guide_taxa.json?guide_id=${GUIDE_ID}&per_page=200`);
     const d = await r.json();
-    taxa = (d.guide_taxa||[]).sort((a,b)=>sci(a).localeCompare(sci(b)));
+    taxa = d.guide_taxa||[];
     buildSubChips('all');
     renderGrid();
     fetchCnames();
@@ -734,6 +764,8 @@ async function fetchDescs() {
   } catch {}
 }
 
+const ancestryMap = {};  // taxon_id → sortable ancestry key
+
 async function fetchCnames() {
   const ids = taxa.map(t=>t.taxon_id);
   for (let i=0; i<ids.length; i+=30) {
@@ -743,10 +775,20 @@ async function fetchCnames() {
       let upd = false;
       (d.results||[]).forEach(tx => {
         if (tx.preferred_common_name) { cnames[tx.id] = tx.preferred_common_name; upd=true; }
+        // ancestry: "48460/1/2/355675/..." — rellenamos cada ID a 8 dígitos para ordenar correctamente
+        const anc = (tx.ancestry||'') + '/' + tx.id;
+        ancestryMap[tx.id] = anc.split('/').map(n=>n.padStart(8,'0')).join('/');
       });
       if (upd) renderGrid();
     } catch {}
   }
+  // Reordenar taxa por ancestry y rerenderizar
+  taxa.sort((a,b) => {
+    const ka = ancestryMap[a.taxon_id] || sci(a);
+    const kb = ancestryMap[b.taxon_id] || sci(b);
+    return ka.localeCompare(kb);
+  });
+  renderGrid();
 }
 
 /* ────────────────────────────────────────────────
@@ -885,39 +927,62 @@ function openSpecies(t) {
   const sb     = subG(t);
   const zs     = zonas(t);
 
-  /* ── Photos ── */
-  const photosDiv = document.getElementById('sphotos');
+  /* ── Gallery ── */
+  const photosDiv  = document.getElementById('sphotos');
   photosDiv.querySelectorAll('#spMainImg').forEach(el=>el.remove());
-  const ph       = document.getElementById('spPhPh');
-  const thumbWrap= document.getElementById('spThumbs');
-  const attrib   = document.getElementById('spAttrib');
-  thumbWrap.innerHTML='';
+  const ph         = document.getElementById('spPhPh');
+  const thumbWrap  = document.getElementById('spThumbs');
+  const attrib     = document.getElementById('spAttrib');
+  const counter    = document.getElementById('galleryCounter');
+  thumbWrap.innerHTML = '';
+  let galIdx = 0;
 
-  if (photos.length>0) {
-    ph.style.display='none';
-    const img = document.createElement('img');
-    img.id='spMainImg'; img.src=photos[0].large_url; img.alt=sn;
-    photosDiv.insertBefore(img, photosDiv.querySelector('.spvign'));
-    const ad = photos[0].photo;
-    attrib.textContent = ad?.attribution||'';
-    if (photos.length>1) {
-      photos.forEach((p,i) => {
-        const th=document.createElement('img');
-        th.className='spthumb'+(i===0?' on':'');
-        th.src=p.small_url; th.dataset.large=p.large_url; th.alt='';
-        th.addEventListener('click',()=>{
-          document.querySelectorAll('.spthumb').forEach(x=>x.classList.remove('on'));
-          th.classList.add('on');
-          const mi=document.getElementById('spMainImg');
-          if(mi){mi.style.opacity='0';setTimeout(()=>{mi.src=th.dataset.large;mi.style.opacity='1';},220);}
-        });
-        thumbWrap.appendChild(th);
-      });
+  function galGo(idx) {
+    galIdx = (idx + photos.length) % photos.length;
+    const mi = document.getElementById('spMainImg');
+    if (mi) {
+      mi.style.opacity = '0';
+      setTimeout(() => {
+        mi.src = photos[galIdx].large_url;
+        mi.style.opacity = '1';
+      }, 180);
     }
+    attrib.textContent = photos[galIdx].photo?.attribution || '';
+    counter.textContent = `${galIdx+1} / ${photos.length}`;
+    thumbWrap.querySelectorAll('.spthumb').forEach((th,i) => {
+      th.classList.toggle('on', i === galIdx);
+      if (i === galIdx) th.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    });
+  }
+
+  document.getElementById('galleryPrev').onclick = () => galGo(galIdx - 1);
+  document.getElementById('galleryNext').onclick = () => galGo(galIdx + 1);
+
+  if (photos.length > 0) {
+    ph.style.display = 'none';
+    const img = document.createElement('img');
+    img.id = 'spMainImg'; img.src = photos[0].large_url; img.alt = sn;
+    photosDiv.insertBefore(img, photosDiv.querySelector('.spvign'));
+    attrib.textContent = photos[0].photo?.attribution || '';
+    const showNav = photos.length > 1;
+    document.getElementById('galleryPrev').style.display = showNav ? 'flex' : 'none';
+    document.getElementById('galleryNext').style.display = showNav ? 'flex' : 'none';
+    counter.style.display = showNav ? 'block' : 'none';
+    counter.textContent = `1 / ${photos.length}`;
+    photos.forEach((p, i) => {
+      const th = document.createElement('img');
+      th.className = 'spthumb' + (i===0?' on':'');
+      th.src = p.small_url; th.dataset.large = p.large_url; th.alt = '';
+      th.onclick = () => galGo(i);
+      thumbWrap.appendChild(th);
+    });
   } else {
-    ph.style.display='flex';
-    ph.textContent=mg==='Peces'?'🐟':mg==='Algas'?'🌿':'🦀';
-    attrib.textContent='';
+    ph.style.display = 'flex';
+    ph.textContent = mg==='Peces'?'🐟':mg==='Algas'?'🌿':'🦀';
+    attrib.textContent = '';
+    document.getElementById('galleryPrev').style.display = 'none';
+    document.getElementById('galleryNext').style.display = 'none';
+    counter.style.display = 'none';
   }
 
   /* ── Text info ── */
@@ -931,13 +996,22 @@ function openSpecies(t) {
     ...zs.map(z=>`<span class="stag">${z}</span>`),
   ].filter(Boolean).join('');
 
-  /* WoRMS and all links use scientific name */
+  /* Links externos según grupo taxonómico */
   const enc   = encodeURIComponent(sn);
   const genus = encodeURIComponent(sn.split(' ')[0]);
+  const mg    = mainG(t);
+  let dbLink  = '';
+  if (mg === 'Peces') {
+    dbLink = `<a class="extbtn eb-fishbase" href="https://www.fishbase.se/summary/${encodeURIComponent(sn.replace(' ','_'))}.html" target="_blank">🐟 FishBase ↗</a>`;
+  } else if (mg === 'Algas') {
+    dbLink = `<a class="extbtn eb-algaebase" href="https://www.algaebase.org/search/species/?name=${enc}" target="_blank">🌿 AlgaeBase ↗</a>`;
+  } else {
+    dbLink = `<a class="extbtn eb-worms" href="https://www.marinespecies.org/aphia.php?p=taxlist&tName=${enc}&marine_only=true" target="_blank">🐚 WoRMS ↗</a>`;
+  }
   document.getElementById('spLinks').innerHTML = `
-    <a class="extbtn eb-inat"  href="${INAT_TAXON}${t.taxon_id}" target="_blank">🌿 iNaturalist ↗</a>
-    <a class="extbtn eb-wiki"  href="https://es.wikipedia.org/wiki/${enc}" target="_blank">📖 Wikipedia ↗</a>
-    <a class="extbtn eb-worms" href="https://www.marinespecies.org/aphia.php?p=taxlist&tName=${enc}&marine_only=true" target="_blank">🐚 WoRMS ↗</a>
+    <a class="extbtn eb-inat" href="${INAT_TAXON}${t.taxon_id}" target="_blank">iNaturalist ↗</a>
+    <a class="extbtn eb-wiki" href="https://es.wikipedia.org/wiki/${enc}" target="_blank">Wikipedia ↗</a>
+    ${dbLink}
   `;
 
   /* ── Co-occurrence section ── */
