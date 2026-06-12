@@ -399,11 +399,18 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 .mapnote a { color: var(--accent); }
 
 /* Co-occurrence section */
-.cooc-section { margin-bottom: 22px; }
+.cooc-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border); margin-bottom: 22px; }
 .cooc-title {
   font-size: .68rem; text-transform: uppercase; letter-spacing: 1.5px;
   color: var(--muted); margin-bottom: 10px; font-weight: 600;
 }
+
+/* Description formatting */
+.desc-html p { margin: 0 0 10px; font-size: .88rem; line-height: 1.7; color: var(--text2); }
+.desc-html .desc-section { margin-top: 14px; }
+.desc-html .desc-section-title { font-size: .8rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
+.desc-html .desc-refs { list-style: none; padding: 0; margin: 6px 0 0; }
+.desc-html .desc-refs li { font-size: .75rem; color: var(--muted); line-height: 1.5; padding: 5px 0 5px 10px; border-left: 2px solid var(--border); margin-bottom: 6px; }
 .cooc-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .cooc-chip {
   display: inline-flex; align-items: center; gap: 7px;
@@ -967,13 +974,62 @@ function openSpecies(t) {
 }
 
 /* ────────────────────────────────────────────────
+   FORMAT DESCRIPTION — detecta secciones y referencias
+──────────────────────────────────────────────── */
+function formatDesc(raw) {
+  // Strip HTML tags, trabajamos con texto plano
+  let text = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const SECTIONS = ['Dieta','Hábitat','Habitat','Reproducción','Reproduccion',
+                    'Distribución','Distribucion','Ecología','Ecologia',
+                    'Taxonomía','Conservación','Comportamiento','Morfología','Morfologia',
+                    'Autores de la ficha'];
+
+  // Separar sección de Referencias antes de procesar el resto
+  const refMatch = text.match(/Referencias utilizadas\s*:(.*)/s);
+  let mainText = refMatch ? text.slice(0, refMatch.index) : text;
+  const refsRaw = refMatch ? refMatch[1].trim() : '';
+
+  // Insertar salto antes de cada encabezado de sección
+  SECTIONS.forEach(h => {
+    const re = new RegExp(`(${h}:)`, 'g');
+    mainText = mainText.replace(re, `\x00$1`);
+  });
+
+  // Construir HTML del texto principal
+  let html = mainText.split('\x00').map((part, i) => {
+    part = part.trim(); if(!part) return '';
+    const colonIdx = part.indexOf(':');
+    if(i > 0 && colonIdx > 0 && colonIdx < 25) {
+      const title = part.slice(0, colonIdx + 1);
+      const content = part.slice(colonIdx + 1).trim();
+      return `<div class="desc-section"><span class="desc-section-title">${title}</span>${content ? `<p>${content}</p>` : ''}</div>`;
+    }
+    return `<p>${part}</p>`;
+  }).join('');
+
+  // Procesar referencias: separar cada cita
+  if(refsRaw) {
+    // Split: después de año (4 dígitos) + info de página, antes de nuevo apellido+iniciales
+    const parts = refsRaw.split(/(?<=\d{3,4}[^\(]{0,60})\s+(?=[A-ZÁÉÍÓÚÜ][a-záéíóúü]+(?:\s+[A-Z][a-z]+)*\s+[A-Z]{1,3}[,\s])/);
+    const items = parts.map(r => r.trim()).filter(Boolean);
+    const listHTML = items.length > 1
+      ? `<ul class="desc-refs">${items.map(r=>`<li>${r}</li>`).join('')}</ul>`
+      : `<ul class="desc-refs"><li>${refsRaw}</li></ul>`;
+    html += `<div class="desc-section"><span class="desc-section-title">Referencias utilizadas:</span>${listHTML}</div>`;
+  }
+
+  return html;
+}
+
+/* ────────────────────────────────────────────────
    LOAD DESCRIPTION (desde descriptions.json pre-generado)
 ──────────────────────────────────────────────── */
 async function loadDesc(t) {
   const el = document.getElementById('descEl'); if(!el) return;
   const body = descData[String(t.taxon_id)] || '';
   if(body.trim()) {
-    el.innerHTML = `<div class="desc-html">${body}</div>`;
+    el.innerHTML = `<div class="desc-html">${formatDesc(body)}</div>`;
   } else {
     el.innerHTML = '<div class="nofiche">Esta especie todavía no tiene descripción en la guía iNaturalist.</div>';
   }
