@@ -277,18 +277,27 @@ button { font-family: inherit; cursor: pointer; border: none; }
     linear-gradient(to right, transparent 55%, rgba(6,14,26,.75) 100%),
     radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,.3) 100%);
 }
-.spthumbs {
-  position: absolute; bottom: 22px; left: 20px;
-  display: flex; gap: 8px; flex-wrap: wrap; max-width: 320px;
+.spnav {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 10px 16px;
+  background: linear-gradient(transparent, rgba(3,8,18,.82));
 }
-.spthumb {
-  width: 60px; height: 60px; object-fit: cover;
-  border-radius: 9px; border: 2px solid transparent;
-  cursor: pointer; opacity: .55; transition: opacity .2s, border-color .2s;
+.spnav-btn {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+  color: #fff; border-radius: 50%; width: 34px; height: 34px;
+  font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s;
+  user-select: none;
 }
-.spthumb.on, .spthumb:hover { opacity: 1; border-color: var(--accent); }
+.spnav-btn:hover { background: rgba(0,180,216,.3); border-color: var(--accent); }
+.spnav-btn:disabled { opacity: .25; cursor: default; }
+.spnav-counter {
+  font-size: .75rem; color: rgba(255,255,255,.6);
+  min-width: 36px; text-align: center;
+}
 .spattrib {
-  position: absolute; bottom: 8px; right: 10px;
+  position: absolute; bottom: 48px; right: 10px;
   font-size: .62rem; color: rgba(255,255,255,.28);
 }
 
@@ -588,8 +597,12 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
   <div id="sphotos">
     <div class="spph" id="spPhPh">🐟</div>
     <div class="spvign"></div>
-    <div class="spthumbs" id="spThumbs"></div>
     <div class="spattrib" id="spAttrib"></div>
+    <div class="spnav" id="spNav" style="display:none">
+      <button class="spnav-btn" id="spPrev">‹</button>
+      <span class="spnav-counter" id="spCounter"></span>
+      <button class="spnav-btn" id="spNext">›</button>
+    </div>
   </div>
 
   <!-- Right: Info -->
@@ -908,36 +921,47 @@ function openSpecies(t) {
   /* ── Photos ── */
   const photosDiv = document.getElementById('sphotos');
   photosDiv.querySelectorAll('#spMainImg').forEach(el=>el.remove());
-  const ph       = document.getElementById('spPhPh');
-  const thumbWrap= document.getElementById('spThumbs');
-  const attrib   = document.getElementById('spAttrib');
-  thumbWrap.innerHTML='';
+  const ph      = document.getElementById('spPhPh');
+  const attrib  = document.getElementById('spAttrib');
+  const navBar  = document.getElementById('spNav');
+  const counter = document.getElementById('spCounter');
+  const btnPrev = document.getElementById('spPrev');
+  const btnNext = document.getElementById('spNext');
+
+  let photoIdx = 0;
+
+  function showPhoto(i) {
+    photoIdx = i;
+    const mi = document.getElementById('spMainImg');
+    if (mi) { mi.style.opacity='0'; setTimeout(()=>{ mi.src=photos[i].large_url; mi.style.opacity='1'; }, 200); }
+    const ad = photos[i].photo;
+    attrib.textContent = ad?.attribution||'';
+    counter.textContent = `${i+1} / ${photos.length}`;
+    btnPrev.disabled = i===0;
+    btnNext.disabled = i===photos.length-1;
+  }
 
   if (photos.length>0) {
     ph.style.display='none';
     const img = document.createElement('img');
     img.id='spMainImg'; img.src=photos[0].large_url; img.alt=sn;
     photosDiv.insertBefore(img, photosDiv.querySelector('.spvign'));
-    const ad = photos[0].photo;
-    attrib.textContent = ad?.attribution||'';
+    attrib.textContent = photos[0].photo?.attribution||'';
     if (photos.length>1) {
-      photos.forEach((p,i) => {
-        const th=document.createElement('img');
-        th.className='spthumb'+(i===0?' on':'');
-        th.src=p.small_url; th.dataset.large=p.large_url; th.alt='';
-        th.addEventListener('click',()=>{
-          document.querySelectorAll('.spthumb').forEach(x=>x.classList.remove('on'));
-          th.classList.add('on');
-          const mi=document.getElementById('spMainImg');
-          if(mi){mi.style.opacity='0';setTimeout(()=>{mi.src=th.dataset.large;mi.style.opacity='1';},220);}
-        });
-        thumbWrap.appendChild(th);
-      });
+      navBar.style.display='flex';
+      counter.textContent = `1 / ${photos.length}`;
+      btnPrev.disabled = true;
+      btnNext.disabled = false;
+      btnPrev.onclick = () => showPhoto(photoIdx-1);
+      btnNext.onclick = () => showPhoto(photoIdx+1);
+    } else {
+      navBar.style.display='none';
     }
   } else {
     ph.style.display='flex';
     ph.textContent=mg==='Peces'?'🐟':mg==='Algas'?'🌿':'🦀';
     attrib.textContent='';
+    navBar.style.display='none';
   }
 
   /* ── Text info ── */
