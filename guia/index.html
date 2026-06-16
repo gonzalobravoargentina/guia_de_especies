@@ -716,12 +716,19 @@ function mainG(t) {
   }
   return 'Invertebrados';
 }
+// Echinoderm subclasses — more specific than generic 'equinodermos'
+const ECHINODERM_CLASSES = new Set(['ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
+// When filtering by 'equinodermos', include all echinoderm subclasses too
+const ECHINODERM_ALL = new Set([...ECHINODERM_CLASSES, 'equinodermos']);
+
 function subG(t) {
+  let general = null;
   for (const tag of gtags(t)) {
     const tl = tag.toLowerCase();
-    if (INV.has(tl)||ALG.has(tl)||PEZ.has(tl)) return tag; // return original casing for display
+    if (ECHINODERM_CLASSES.has(tl)) return tag; // prefer specific class over 'equinodermos'
+    if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tag;
   }
-  return null;
+  return general;
 }
 
 /* ────────────────────────────────────────────────
@@ -841,7 +848,12 @@ function filtered() {
     if (fZona !=='all' && !zonas(t).includes(fZona))   return false;
     if (fFondo!=='all' && !fondos(t).includes(fFondo)) return false;
     if (fMain!=='all' && mainG(t)!==fMain) return false;
-    if (fSub !=='all' && subG(t) !==fSub)  return false;
+    if (fSub !=='all') {
+      const sg = (subG(t)||'').toLowerCase();
+      const fsb = fSub.toLowerCase();
+      // 'equinodermos' filter includes all echinoderm subclasses
+      if (fsb === 'equinodermos' ? !ECHINODERM_ALL.has(sg) : sg !== fsb) return false;
+    }
     if (q) {
       const s = sci(t).toLowerCase();
       const c = (cnames[t.taxon_id]||'').toLowerCase();
