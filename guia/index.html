@@ -138,11 +138,12 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 .cdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-/* sub-chips separator */
-.sub-sep {
-  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
-  margin-left: 4px; padding-left: 12px;
-  border-left: 1px solid var(--border2);
+/* subgroup row — own frow, hidden when not needed */
+.sub-sep { display: none; }
+.sub-sep.active {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 20px; overflow: hidden;
+  border-top: 1px solid rgba(26,48,80,.55);
 }
 
 /* search */
@@ -535,7 +536,7 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip" data-fondo="arena">Arena</button>
     </div>
   </div>
-  <!-- Row 3: Grupo principal + subgrupos dinámicos -->
+  <!-- Row 3: Grupo principal -->
   <div class="frow">
     <span class="flbl">Grupo</span>
     <div class="chips" id="mainChips">
@@ -544,9 +545,11 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip" data-main="Peces"><span class="cdot" style="background:#4ca3e8"></span>Peces</button>
       <button class="chip" data-main="Invertebrados"><span class="cdot" style="background:#f0964a"></span>Invertebrados</button>
     </div>
-    <div class="sub-sep" id="subSep" style="display:none">
-      <div class="chips" id="subChips"></div>
-    </div>
+  </div>
+  <!-- Row 4: Subgrupos dinámicos (se muestra solo con Invertebrados) -->
+  <div class="sub-sep" id="subSep">
+    <span class="flbl" style="opacity:.6">↳</span>
+    <div class="chips" id="subChips"></div>
   </div>
 </div>
 
@@ -832,11 +835,11 @@ function buildSubChips(main) {
   const sep  = document.getElementById('subSep');
   const wrap = document.getElementById('subChips');
   wrap.innerHTML = '';
-  if (main==='all'||main==='Algas'||main==='Peces') { sep.style.display='none'; return; }
+  if (main==='all'||main==='Algas'||main==='Peces') { sep.classList.remove('active'); return; }
   const map = new Map();
   taxa.forEach(t => { if(mainG(t)===main){ const s=subG(t); if(s) map.set(s,(map.get(s)||0)+1); } });
-  if (map.size < 2) { sep.style.display='none'; return; }
-  sep.style.display = 'flex';
+  if (map.size < 2) { sep.classList.remove('active'); return; }
+  sep.classList.add('active');
   wrap.appendChild(mkChip('Todos','sub','all',true,null));
   [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([sub,cnt]) => {
     wrap.appendChild(mkChip(`${sub} <small style="opacity:.55">${cnt}</small>`,'sub',sub,false,scol(sub)||'#888'));
