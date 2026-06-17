@@ -850,7 +850,7 @@ let leafMap   = null;
 /* ────────────────────────────────────────────────
    TAG HELPERS
 ──────────────────────────────────────────────── */
-const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=','').toLowerCase());
+const zonas  = t => (t.tag_list||[]).filter(x=>x.toLowerCase().startsWith('zona=')).map(x=>x.replace(/zona=/i,'').trim().toLowerCase());
 const fondos = t => (t.tag_list||[]).filter(x=>x.toLowerCase().startsWith('fondo=')).map(x=>x.replace(/fondo=/i,'').toLowerCase().trim());
 const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona=')&&!x.toLowerCase().startsWith('fondo='));
 const sci   = t => t.name || t.display_name || '';
@@ -1295,35 +1295,59 @@ async function loadDesc(t) {
 }
 
 /* ────────────────────────────────────────────────
-   SIMILAR SPECIES TAB
+   SIMILAR SPECIES TAB — por clase taxonómica
 ──────────────────────────────────────────────── */
-function renderSimilar(current) {
+async function renderSimilar(current) {
   const grid = document.getElementById('similarGrid');
+  grid.innerHTML = '<p class="aloading" style="color:var(--muted)">Buscando especies emparentadas…</p>';
+
+  // 1. Fetch taxon detail to find class ancestor
+  let className = null, classId = null;
+  try {
+    const r = await fetch(`${V1_API}/taxa/${current.taxon_id}?all_names=false`);
+    const d = await r.json();
+    const taxon = (d.results||[])[0];
+    const classAnc = (taxon?.ancestors||[]).find(a => a.rank === 'class');
+    if (classAnc) { classId = String(classAnc.id); className = classAnc.name; }
+  } catch {}
+
   grid.innerHTML = '';
 
-  const sg  = subG(current);       // subgrupo: ej. 'moluscos', 'rodofitas'
-  const mg  = mainG(current);      // grupo principal: ej. 'Invertebrados'
+  // 2. Filter: same class = classId appears in their ancestry string
+  let same = [];
+  if (classId) {
+    same = taxa.filter(t => {
+      if (t.taxon_id === current.taxon_id) return false;
+      const anc = ancestryMap[t.taxon_id] || '';
+      // ancestry is stored as "id1/id2/.../taxon_id" — check classId as a segment
+      return anc.split('/').includes(classId);
+    });
+  }
+  // Fallback: mismo subgrupo de tags
+  if (same.length === 0) {
+    const sg = subG(current), mg = mainG(current);
+    same = taxa.filter(t => {
+      if (t.taxon_id === current.taxon_id) return false;
+      if (sg && subG(t) === sg) return true;
+      if (!sg && mainG(t) === mg) return true;
+      return false;
+    });
+  }
 
-  // Filtrar taxa: misma especie excluida; prefiere mismo subgrupo, cae a mismo grupo
-  const same = taxa.filter(t => {
-    if (t.taxon_id === current.taxon_id) return false;
-    if (sg && subG(t) === sg) return true;
-    if (!sg && mainG(t) === mg) return true;
-    return false;
-  });
-
-  // Si hay subgrupo, mostrar label
+  // 3. Label
   const labelEl = document.createElement('p');
   labelEl.className = 'similar-label';
-  const groupLabel = sg ? (DISPLAY_NAME[sg] || sg) : mg;
-  labelEl.textContent = `${same.length} especie${same.length!==1?'s':''} en ${groupLabel}`;
+  labelEl.textContent = className
+    ? `${same.length} especie${same.length!==1?'s':''} en ${className}`
+    : `${same.length} especie${same.length!==1?'s':''} emparentadas`;
   grid.appendChild(labelEl);
 
   if (same.length === 0) {
-    grid.innerHTML += '<p style="color:var(--muted);font-size:.82rem">No hay otras especies de esta categoría en la guía.</p>';
+    grid.innerHTML += '<p style="color:var(--muted);font-size:.82rem">No hay otras especies de esta clase en la guía.</p>';
     return;
   }
 
+  // 4. Cards
   same.forEach(t => {
     const img = (t.photos||[])[0];
     const thumb = img ? img.url.replace('square','small') : '';
@@ -1331,7 +1355,9 @@ function renderSimilar(current) {
     const card = document.createElement('div');
     card.className = 'sim-card';
     card.innerHTML = `
-      ${thumb ? `<img src="${thumb}" alt="${t.scientific_name}" loading="lazy">` : `<div style="aspect-ratio:1/1;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🐚</div>`}
+      ${thumb
+        ? `<img src="${thumb}" alt="${t.scientific_name}" loading="lazy">`
+        : `<div style="aspect-ratio:1/1;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🐚</div>`}
       <div class="sim-info">
         <div class="sim-sci">${t.scientific_name}</div>
         ${common ? `<div class="sim-common">${common}</div>` : ''}
