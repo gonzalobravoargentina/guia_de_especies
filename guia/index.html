@@ -276,7 +276,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   background: #030811; overflow: hidden;
 }
 #spBgBlur {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: 0;
   width: 100%; height: 100%;
   object-fit: cover;
   filter: blur(18px) brightness(.45) saturate(1.2);
@@ -284,7 +284,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   transition: opacity .4s;
 }
 #spMainImg {
-  position: relative; z-index: 1;
+  position: absolute; inset: 0; z-index: 1;
   width: 100%; height: 100%;
   object-fit: contain; transition: opacity .28s;
 }
@@ -294,13 +294,13 @@ button { font-family: inherit; cursor: pointer; border: none; }
   font-size: 7rem; color: var(--muted2);
 }
 .spvign {
-  position: absolute; inset: 0; pointer-events: none;
+  position: absolute; inset: 0; pointer-events: none; z-index: 2;
   background:
     linear-gradient(to right, transparent 55%, rgba(6,14,26,.75) 100%),
     radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,.3) 100%);
 }
 .spnav {
-  position: absolute; bottom: 0; left: 0; right: 0;
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
   display: flex; align-items: center; justify-content: center; gap: 14px;
   padding: 10px 16px;
   background: linear-gradient(transparent, rgba(3,8,18,.82));
@@ -319,8 +319,11 @@ button { font-family: inherit; cursor: pointer; border: none; }
   min-width: 36px; text-align: center;
 }
 .spattrib {
-  position: absolute; bottom: 48px; right: 10px;
+  position: absolute; bottom: 48px; right: 10px; z-index: 3;
   font-size: .62rem; color: rgba(255,255,255,.28);
+}
+.spattrib-mobile {
+  display: none;
 }
 
 /* ── Info panel ── */
@@ -513,6 +516,14 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
   }
   #sphotos { height: 48vw; }
   .spvign { background: linear-gradient(to bottom, transparent 55%, rgba(6,14,26,.92) 100%); }
+  .spattrib { display: none; }
+  .spattrib-mobile {
+    display: block;
+    font-size: .6rem; color: var(--muted);
+    padding: 4px 14px; background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   #spinfo { height: calc(100vh - 48vw); border-left: none; border-top: 1px solid var(--border); }
   .spsci { font-size: 1.35rem; }
   .spmain { padding: 18px 18px 0; }
@@ -593,6 +604,7 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip" data-main="Algas"><span class="cdot" style="background:#56c96e"></span>Algas</button>
       <button class="chip" data-main="Peces"><span class="cdot" style="background:#4ca3e8"></span>Peces</button>
       <button class="chip" data-main="Invertebrados"><span class="cdot" style="background:#f0964a"></span>Invertebrados</button>
+      <button class="chip" data-main="Ascidias"><span class="cdot" style="background:#a050c0"></span>Ascidias</button>
     </div>
   </div>
   <!-- Row 4: Subgrupos dinámicos -->
@@ -680,6 +692,9 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
   <!-- Right: Info -->
   <div id="spinfo">
 
+    <!-- Attribution (mobile only) -->
+    <div class="spattrib-mobile" id="spAttribMobile"></div>
+
     <!-- Top bar -->
     <div class="sptopbar">
       <button class="spback" id="spBack">
@@ -739,8 +754,9 @@ const INAT_TAXON = 'https://www.inaturalist.org/taxa/';
 
 /* Tags that map to each top-level group */
 // All sets in lowercase — comparison uses tag.toLowerCase()
+const ASC = new Set(['ascidias','tunicados']);
 const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','moluscos',
-  'crustáceos','cangrejos','cirripedios','camarones','poliquetos','cnidarios','esponjas','briozoos','tunicados',
+  'crustáceos','cangrejos','cirripedios','camarones','poliquetos','cnidarios','esponjas','briozoos',
   'anélidos','cefalópodos','hidrozoos','anemonas','corales','octocorales','medusas','placoforos',
   'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
   'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos',
@@ -870,6 +886,7 @@ function mainG(t) {
     const tl = normTag(tag.toLowerCase());
     if (ALG.has(tl)||ALG_SPECIFIC.has(tl)) return 'Algas';
     if (PEZ.has(tl)) return 'Peces';
+    if (ASC.has(tl)) return 'Ascidias';
     if (INV.has(tl)) return 'Invertebrados';
   }
   return 'Invertebrados';
@@ -1148,11 +1165,14 @@ function openSpecies(t) {
     photoIdx = i;
     const mi = document.getElementById('spMainImg');
     const bg = document.getElementById('spBgBlur');
+    const am = document.getElementById('spAttribMobile');
     const url = photos[i].large_url;
     if (mi) { mi.style.opacity='0'; setTimeout(()=>{ mi.src=url; mi.style.opacity='1'; }, 200); }
     if (bg) { bg.src=url; }
     const ad = photos[i].photo;
-    attrib.textContent = ad?.attribution||'';
+    const attrText = ad?.attribution||'';
+    attrib.textContent = attrText;
+    if (am) am.textContent = attrText;
     counter.textContent = `${i+1} / ${photos.length}`;
     btnPrev.disabled = i===0;
     btnNext.disabled = i===photos.length-1;
@@ -1165,7 +1185,10 @@ function openSpecies(t) {
     const img = document.createElement('img');
     img.id='spMainImg'; img.src=photos[0].large_url; img.alt=sn;
     photosDiv.insertBefore(img, photosDiv.querySelector('.spvign'));
-    attrib.textContent = photos[0].photo?.attribution||'';
+    const attrText0 = photos[0].photo?.attribution||'';
+    attrib.textContent = attrText0;
+    const am0 = document.getElementById('spAttribMobile');
+    if (am0) am0.textContent = attrText0;
     if (photos.length>1) {
       navBar.style.display='flex';
       counter.textContent = `1 / ${photos.length}`;
