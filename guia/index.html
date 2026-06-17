@@ -692,7 +692,7 @@ const INAT_TAXON = 'https://www.inaturalist.org/taxa/';
 // All sets in lowercase — comparison uses tag.toLowerCase()
 const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','moluscos',
   'crustáceos','poliquetos','cnidarios','esponjas','briozoos','tunicados',
-  'anélidos','cefalópodos','hidrozoos','anemonas','corales','placoforos',
+  'anélidos','cefalópodos','hidrozoos','anemonas','corales','octocorales','medusas','placoforos',
   'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
   'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
 const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
@@ -716,8 +716,10 @@ const SUBGROUP_PARENT = {
   'equinoideos':   'equinodermos',
   // Cnidarios
   'anemonas':      'cnidarios',
-  'corales':       'cnidarios',
-  'hidrozoos':     'cnidarios',
+  'octocorales':   'cnidarios',
+  'medusas':       'cnidarios',
+  'corales':       'cnidarios',   // alias legacy
+  'hidrozoos':     'cnidarios',   // alias legacy
   // Anélidos
   'poliquetos':    'anélidos',
 };
@@ -726,7 +728,7 @@ const SUBGROUP_PARENT = {
 const SUBGROUP_CHILDREN = {
   'moluscos':      ['gasterópodos','nudibranquios','bivalvos','cefalópodos','placoforos','quitones'],
   'equinodermos':  ['ofiuras','holoturias','asteroideos','equinoideos','crinoideos'],
-  'cnidarios':     ['anemonas','corales','hidrozoos'],
+  'cnidarios':     ['anemonas','octocorales','medusas'],
   'anélidos':      ['poliquetos'],
 };
 
@@ -737,11 +739,21 @@ const SCOL = {
   'briozoos':'#4caf7a','tunicados':'#a050c0','algas':'#56c96e','peces':'#4ca3e8',
   'holoturias':'#e67e5a','ofiuras':'#e84393','asteroideos':'#e8a000',
   'equinoideos':'#b22222','crinoideos':'#c060a0',
-  'anemonas':'#e84040','corales':'#e87040','hidrozoos':'#a090ee',
+  'anemonas':'#e84040','octocorales':'#e87040','medusas':'#88b0ee','hidrozoos':'#a090ee',
   'anélidos':'#30c0a0','cefalópodos':'#6070c8','placoforos':'#b09060',
 };
 // Helper: color lookup case-insensitive
 const scol = tag => tag ? (SCOL[tag.toLowerCase()] || 'var(--accent)') : 'var(--accent)';
+
+// Nombres comunes para mostrar en los chips (el tag interno sigue siendo la clave)
+const DISPLAY_NAME = {
+  'holoturias':  'Pepinos de mar',
+  'equinoideos': 'Erizos',
+  'asteroideos': 'Estrellas de mar',
+  'octocorales': 'Octocorales',
+  'medusas':     'Medusas',
+};
+const dispName = tag => DISPLAY_NAME[tag.toLowerCase()] || tag;
 
 /* ────────────────────────────────────────────────
    STATE
@@ -903,7 +915,7 @@ function buildSubChips(main) {
   sep.classList.add('active');
   wrap.appendChild(mkChip('Todos','sub','all',true,null));
   [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([sub,cnt]) => {
-    wrap.appendChild(mkChip(`${sub} <small style="opacity:.55">${cnt}</small>`,'sub',sub,false,scol(sub)||'#888'));
+    wrap.appendChild(mkChip(`${dispName(sub)} <small style="opacity:.55">${cnt}</small>`,'sub',sub,false,scol(sub)||'#888'));
   });
 }
 
@@ -925,7 +937,7 @@ function buildSubSubChips(sub) {
   wrap2.appendChild(mkChip('Todos','sub2','all',true,null));
   children.forEach(cl => {
     const cnt = map.get(cl)||0;
-    if (cnt > 0) wrap2.appendChild(mkChip(`${cl} <small style="opacity:.55">${cnt}</small>`,'sub2',cl,false,scol(cl)||'#888'));
+    if (cnt > 0) wrap2.appendChild(mkChip(`${dispName(cl)} <small style="opacity:.55">${cnt}</small>`,'sub2',cl,false,scol(cl)||'#888'));
   });
 }
 function mkChip(html,attr,val,on,color) {
