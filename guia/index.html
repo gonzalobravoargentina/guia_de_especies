@@ -532,6 +532,7 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip on" data-zona="all">Todos</button>
       <button class="chip" data-zona="intermareal">🌊 Intermareal</button>
       <button class="chip" data-zona="submareal">🤿 Submareal</button>
+      <button class="chip" data-zona="Columna de agua">〰️ Columna de agua</button>
     </div>
   </div>
   <!-- Row 2: Tipo de fondo -->
@@ -698,6 +699,10 @@ const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','
 const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
 const PEZ = new Set(['peces','pez','elasmobranquios','condricties','actinopterigios']);
 
+// Normaliza variantes de un mismo tag (tildes, mayúsculas, etc.)
+const TAG_NORM = { 'anémonas':'anemonas', 'gasteropodos':'gasterópodos', 'crustaceos':'crustáceos' };
+const normTag = tl => TAG_NORM[tl] || tl;
+
 // Jerarquía taxonómica: hijo → padre (nivel 2 → nivel 3 aparece al seleccionar padre)
 const SUBGROUP_PARENT = {
   // Moluscos
@@ -714,9 +719,8 @@ const SUBGROUP_PARENT = {
   'crinoideos':    'equinodermos',
   'asteroideos':   'equinodermos',
   'equinoideos':   'equinodermos',
-  // Cnidarios (con y sin tilde)
+  // Cnidarios
   'anemonas':      'cnidarios',
-  'anémonas':      'cnidarios',
   'octocorales':   'cnidarios',
   'medusas':       'cnidarios',
   'corales':       'cnidarios',
@@ -813,7 +817,7 @@ const ALG_SPECIFIC = new Set(['rodofitas','clorofitas','feofitas']);
 function subG(t) {
   let general = null;
   for (const tag of gtags(t)) {
-    const tl = tag.toLowerCase();
+    const tl = normTag(tag.toLowerCase());
     if (SUBGROUP_PARENT[tl]) return SUBGROUP_PARENT[tl]; // mapear al padre
     if (ALG_SPECIFIC.has(tl)) return tl;                 // alga específica tiene prioridad
     if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tl;
@@ -823,7 +827,7 @@ function subG(t) {
 // Nivel 3: clase específica si el tag es un hijo conocido
 function subGClass(t) {
   for (const tag of gtags(t)) {
-    const tl = tag.toLowerCase();
+    const tl = normTag(tag.toLowerCase());
     if (SUBGROUP_PARENT[tl]) return tl;
   }
   return null;
