@@ -332,11 +332,13 @@ button { font-family: inherit; cursor: pointer; border: none; }
   flex-shrink: 0;
 }
 .spback {
-  display: flex; align-items: center; gap: 5px;
-  font-size: .78rem; color: var(--text2); background: none; padding: 4px 0;
-  transition: color .15s;
+  display: flex; align-items: center; gap: 6px;
+  font-size: .82rem; font-weight: 700; letter-spacing: .3px;
+  color: #fff; background: var(--accent);
+  padding: 7px 14px; border-radius: 20px;
+  transition: opacity .15s, transform .15s;
 }
-.spback:hover { color: var(--accent); }
+.spback:hover { opacity: .85; transform: translateX(-2px); }
 .spclose {
   margin-left: auto;
   width: 30px; height: 30px; border-radius: 50%;
@@ -396,6 +398,36 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 .tabarea { padding: 22px 26px 50px; flex: 1; }
 .tc { display: none; }
 .tc.on { display: block; }
+
+/* Similar species grid */
+.similar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.sim-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  cursor: pointer; transition: transform .15s, border-color .15s;
+}
+.sim-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.sim-card img {
+  width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;
+}
+.sim-card .sim-info { padding: 7px 8px; }
+.sim-card .sim-sci {
+  font-style: italic; font-size: .72rem; color: var(--text2);
+  line-height: 1.2; margin-bottom: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sim-card .sim-common {
+  font-size: .7rem; color: var(--muted); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.similar-label {
+  font-size: .7rem; color: var(--muted); margin-bottom: 12px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: .8px;
+}
 
 /* Description HTML */
 .desc-html { font-size: .87rem; color: var(--text2); line-height: 1.88; }
@@ -589,11 +621,13 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
     <div style="padding:20px 28px 32px;font-size:.87rem;color:var(--text2);line-height:1.8">
 
       <h3 style="color:var(--accent);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 8px">¿Cómo funciona?</h3>
-      <p>Esta guía reúne las especies de fondos marinos de la costa argentina documentadas mediante buceo científico. Cada ficha integra tres fuentes en tiempo real:</p>
+      <p>Esta guía reúne las especies de fondos marinos de la costa argentina documentadas mediante buceo científico. Cada ficha integra las siguientes fuentes:</p>
       <ul style="padding-left:18px;margin:10px 0">
         <li style="margin-bottom:6px"><a href="https://www.argentinat.org/" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:none">iNaturalist ↗</a> — fotografías y registros de observación georreferenciados, con mapa de distribución de observaciones verificadas.</li>
         <li style="margin-bottom:6px"><a href="https://es.wikipedia.org/" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:none">Wikipedia ↗</a> — resumen taxonómico y ecológico de cada especie.</li>
-        <li style="margin-bottom:6px"><strong style="color:var(--text)">WoRMS</strong> (World Register of Marine Species) — clasificación taxonómica actualizada y sinonimias.</li>
+        <li style="margin-bottom:6px"><a href="https://www.marinespecies.org/" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:none">WoRMS ↗</a> (World Register of Marine Species) — clasificación taxonómica y sinonimias para <strong style="color:var(--text)">invertebrados</strong>.</li>
+        <li style="margin-bottom:6px"><a href="https://www.fishbase.se/" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:none">FishBase ↗</a> — base de datos taxonómica y ecológica para <strong style="color:var(--text)">peces</strong>.</li>
+        <li style="margin-bottom:6px"><a href="https://www.algaebase.org/" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:none">AlgaeBase ↗</a> — base de datos taxonómica para <strong style="color:var(--text)">algas</strong>.</li>
       </ul>
       <p>Los datos se cargan directamente desde cada plataforma, por lo que cualquier actualización en iNaturalist se refleja automáticamente en esta guía.</p>
 
@@ -659,6 +693,7 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="tabBtn on" data-t="desc">Descripción</button>
       <button class="tabBtn"    data-t="wiki">Wikipedia</button>
       <button class="tabBtn"    data-t="map">Mapa</button>
+      <button class="tabBtn"    data-t="similar">Especies emparentadas</button>
     </div>
 
     <!-- Tab areas -->
@@ -674,6 +709,9 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <div class="tc"    id="t-map">
         <div id="spMap"></div>
         <p class="mapnote" id="mapNote"></p>
+      </div>
+      <div class="tc"    id="t-similar">
+        <div id="similarGrid" class="similar-grid"></div>
       </div>
     </div>
 
@@ -1167,6 +1205,7 @@ function openSpecies(t) {
   document.getElementById('descEl').innerHTML='<p class="aloading">Cargando descripción…</p>';
   document.getElementById('wikiEl').innerHTML='<p class="aloading">Cargando Wikipedia…</p>';
   document.getElementById('mapNote').innerHTML='';
+  document.getElementById('similarGrid').innerHTML='';
   if(leafMap){leafMap.remove();leafMap=null;}
 
   /* ── Show overlay ── */
@@ -1174,7 +1213,7 @@ function openSpecies(t) {
   document.body.style.overflow='hidden';
 
   /* ── Tab handlers (fresh clone to avoid stale closures) ── */
-  let mapInit=false;
+  let mapInit=false, similarInit=false;
   document.querySelectorAll('.tabBtn').forEach(btn=>{
     const nb=btn.cloneNode(true);
     btn.parentNode.replaceChild(nb,btn);
@@ -1184,6 +1223,7 @@ function openSpecies(t) {
       nb.classList.add('on');
       document.getElementById(`t-${nb.dataset.t}`).classList.add('on');
       if(nb.dataset.t==='map'&&!mapInit){mapInit=true;initMap(t.taxon_id);}
+      if(nb.dataset.t==='similar'&&!similarInit){similarInit=true;renderSimilar(t);}
     });
   });
 
@@ -1252,6 +1292,53 @@ async function loadDesc(t) {
   } else {
     el.innerHTML = '<div class="nofiche">Esta especie todavía no tiene descripción en la guía iNaturalist.</div>';
   }
+}
+
+/* ────────────────────────────────────────────────
+   SIMILAR SPECIES TAB
+──────────────────────────────────────────────── */
+function renderSimilar(current) {
+  const grid = document.getElementById('similarGrid');
+  grid.innerHTML = '';
+
+  const sg  = subG(current);       // subgrupo: ej. 'moluscos', 'rodofitas'
+  const mg  = mainG(current);      // grupo principal: ej. 'Invertebrados'
+
+  // Filtrar taxa: misma especie excluida; prefiere mismo subgrupo, cae a mismo grupo
+  const same = taxa.filter(t => {
+    if (t.taxon_id === current.taxon_id) return false;
+    if (sg && subG(t) === sg) return true;
+    if (!sg && mainG(t) === mg) return true;
+    return false;
+  });
+
+  // Si hay subgrupo, mostrar label
+  const labelEl = document.createElement('p');
+  labelEl.className = 'similar-label';
+  const groupLabel = sg ? (DISPLAY_NAME[sg] || sg) : mg;
+  labelEl.textContent = `${same.length} especie${same.length!==1?'s':''} en ${groupLabel}`;
+  grid.appendChild(labelEl);
+
+  if (same.length === 0) {
+    grid.innerHTML += '<p style="color:var(--muted);font-size:.82rem">No hay otras especies de esta categoría en la guía.</p>';
+    return;
+  }
+
+  same.forEach(t => {
+    const img = (t.photos||[])[0];
+    const thumb = img ? img.url.replace('square','small') : '';
+    const common = (cnames[t.taxon_id]||'').trim();
+    const card = document.createElement('div');
+    card.className = 'sim-card';
+    card.innerHTML = `
+      ${thumb ? `<img src="${thumb}" alt="${t.scientific_name}" loading="lazy">` : `<div style="aspect-ratio:1/1;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🐚</div>`}
+      <div class="sim-info">
+        <div class="sim-sci">${t.scientific_name}</div>
+        ${common ? `<div class="sim-common">${common}</div>` : ''}
+      </div>`;
+    card.addEventListener('click', () => openSpecies(t));
+    grid.appendChild(card);
+  });
 }
 
 /* ────────────────────────────────────────────────
