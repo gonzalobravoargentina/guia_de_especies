@@ -691,7 +691,7 @@ const INAT_TAXON = 'https://www.inaturalist.org/taxa/';
 /* Tags that map to each top-level group */
 // All sets in lowercase — comparison uses tag.toLowerCase()
 const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','moluscos',
-  'crustáceos','poliquetos','cnidarios','esponjas','briozoos','tunicados',
+  'crustáceos','cangrejos','cirripedios','camarones','poliquetos','cnidarios','esponjas','briozoos','tunicados',
   'anélidos','cefalópodos','hidrozoos','anemonas','corales','octocorales','medusas','placoforos',
   'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
   'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
@@ -718,8 +718,12 @@ const SUBGROUP_PARENT = {
   'anemonas':      'cnidarios',
   'octocorales':   'cnidarios',
   'medusas':       'cnidarios',
-  'corales':       'cnidarios',   // alias legacy
-  'hidrozoos':     'cnidarios',   // alias legacy
+  'corales':       'cnidarios',
+  'hidrozoos':     'cnidarios',
+  // Crustáceos
+  'cangrejos':     'crustáceos',
+  'cirripedios':   'crustáceos',
+  'camarones':     'crustáceos',
   // Anélidos
   'poliquetos':    'anélidos',
 };
@@ -729,6 +733,7 @@ const SUBGROUP_CHILDREN = {
   'moluscos':      ['gasterópodos','nudibranquios','bivalvos','cefalópodos','placoforos','quitones'],
   'equinodermos':  ['ofiuras','holoturias','asteroideos','equinoideos','crinoideos'],
   'cnidarios':     ['anemonas','octocorales','medusas'],
+  'crustáceos':    ['cangrejos','camarones','cirripedios'],
   'anélidos':      ['poliquetos'],
 };
 
@@ -739,7 +744,9 @@ const SCOL = {
   'briozoos':'#4caf7a','tunicados':'#a050c0','algas':'#56c96e','peces':'#4ca3e8',
   'holoturias':'#e67e5a','ofiuras':'#e84393','asteroideos':'#e8a000',
   'equinoideos':'#b22222','crinoideos':'#c060a0',
+  'rodofitas':'#c0304a','clorofitas':'#2ea04a','feofitas':'#8a6020',
   'anemonas':'#e84040','octocorales':'#e87040','medusas':'#88b0ee','hidrozoos':'#a090ee',
+  'cangrejos':'#d47a20','camarones':'#e8a060','cirripedios':'#b09040',
   'anélidos':'#30c0a0','cefalópodos':'#6070c8','placoforos':'#b09060',
 };
 // Helper: color lookup case-insensitive
@@ -750,8 +757,16 @@ const DISPLAY_NAME = {
   'holoturias':  'Pepinos de mar',
   'equinoideos': 'Erizos',
   'asteroideos': 'Estrellas de mar',
+  'anemonas':    'Anémonas',
   'octocorales': 'Octocorales',
   'medusas':     'Medusas',
+  'cangrejos':   'Cangrejos',
+  'camarones':   'Camarones',
+  'cirripedios': 'Cirripedios',
+  'rodofitas':   'Rojas',
+  'clorofitas':  'Verdes',
+  'feofitas':    'Pardas',
+  'macroalgas':  'Macroalgas',
 };
 const dispName = tag => DISPLAY_NAME[tag.toLowerCase()] || tag;
 
@@ -908,7 +923,7 @@ function buildSubChips(main) {
   const wrap = document.getElementById('subChips');
   wrap.innerHTML = '';
   buildSubSubChips(null); // reset level 3
-  if (main==='all'||main==='Algas'||main==='Peces') { sep.classList.remove('active'); return; }
+  if (main==='all'||main==='Peces') { sep.classList.remove('active'); return; }
   const map = new Map();
   taxa.forEach(t => { if(mainG(t)===main){ const s=subG(t); if(s) { const key=s.toLowerCase(); map.set(key,(map.get(key)||0)+1); } } });
   if (map.size < 2) { sep.classList.remove('active'); return; }
