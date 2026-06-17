@@ -1515,7 +1515,7 @@ async function initMap(taxonId) {
 
   try {
     // Fetch up to 200 research-grade observations (Argentina + alrededores)
-    const url = `${V1_API}/observations?taxon_id=${taxonId}&quality_grade=research&per_page=200&order=desc&order_by=created_at&geoprivacy=open`;
+    const url = `${V1_API}/observations?taxon_id=${taxonId}&quality_grade=research&per_page=200&order=desc&order_by=created_at&geoprivacy=open&place_id=7033`;
     const r = await fetch(url);
     const d = await r.json();
     const obs = (d.results||[]).filter(o=>o.geojson);
