@@ -699,8 +699,21 @@ const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','
 const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
 const PEZ = new Set(['peces','pez','elasmobranquios','condricties','actinopterigios']);
 
-// Normaliza variantes de un mismo tag (tildes, mayúsculas, etc.)
-const TAG_NORM = { 'anémonas':'anemonas', 'gasteropodos':'gasterópodos', 'crustaceos':'crustáceos' };
+// Normaliza variantes de tags: sin tilde, plural, nombre común, etc.
+const TAG_NORM = {
+  // Cnidarios
+  'anémonas':'anemonas',
+  // Moluscos
+  'gasteropodos':'gasterópodos',
+  'cefalopodos':'cefalópodos',
+  // Crustáceos
+  'crustaceos':'crustáceos',
+  // Algas — variantes comunes
+  'algas rojas':'rodofitas', 'alga roja':'rodofitas', 'rojas':'rodofitas', 'roja':'rodofitas',
+  'algas verdes':'clorofitas','alga verde':'clorofitas','verdes':'clorofitas','verde':'clorofitas',
+  'algas pardas':'feofitas',  'alga parda':'feofitas', 'pardas':'feofitas', 'parda':'feofitas',
+  'rhodophyta':'rodofitas','chlorophyta':'clorofitas','phaeophyta':'feofitas',
+};
 const normTag = tl => TAG_NORM[tl] || tl;
 
 // Jerarquía taxonómica: hijo → padre (nivel 2 → nivel 3 aparece al seleccionar padre)
@@ -797,13 +810,13 @@ let leafMap   = null;
 ──────────────────────────────────────────────── */
 const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=',''));
 const fondos = t => (t.tag_list||[]).filter(x=>x.toLowerCase().startsWith('fondo=')).map(x=>x.replace(/fondo=/i,'').toLowerCase().trim());
-const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona='));
+const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona=')&&!x.toLowerCase().startsWith('fondo='));
 const sci   = t => t.name || t.display_name || '';
 
 function mainG(t) {
   for (const tag of gtags(t)) {
-    const tl = tag.toLowerCase();
-    if (ALG.has(tl)) return 'Algas';
+    const tl = normTag(tag.toLowerCase());
+    if (ALG.has(tl)||ALG_SPECIFIC.has(tl)) return 'Algas';
     if (PEZ.has(tl)) return 'Peces';
     if (INV.has(tl)) return 'Invertebrados';
   }
@@ -812,7 +825,7 @@ function mainG(t) {
 // Tags de algas específicos (tienen prioridad sobre 'algas' genérico)
 const ALG_SPECIFIC = new Set(['rodofitas','clorofitas','feofitas']);
 
-// Nivel 2: devuelve el grupo padre si la especie tiene un tag hijo
+/// Nivel 2: devuelve el grupo padre si la especie tiene un tag hijo
 // ej: 'gasterópodos' → 'moluscos', 'ofiuras' → 'equinodermos'
 function subG(t) {
   let general = null;
