@@ -1515,7 +1515,8 @@ async function initMap(taxonId) {
 
   try {
     // Fetch up to 200 research-grade observations (Argentina + alrededores)
-    const url = `${V1_API}/observations?taxon_id=${taxonId}&quality_grade=research&per_page=200&order=desc&order_by=created_at&geoprivacy=open&place_id=7033`;
+    // Bounding box: Sudamérica + océanos circundantes
+    const url = `${V1_API}/observations?taxon_id=${taxonId}&quality_grade=research&per_page=200&order=desc&order_by=created_at&geoprivacy=open&swlat=-60&swlng=-82&nelat=14&nelng=-25`;
     const r = await fetch(url);
     const d = await r.json();
     const obs = (d.results||[]).filter(o=>o.geojson);
@@ -1550,7 +1551,7 @@ async function initMap(taxonId) {
 
     const total = d.total_results||obs.length;
     document.getElementById('mapNote').innerHTML =
-      `${obs.length} obs. mostradas${total>200?' de '+total.toLocaleString():''} (research grade) · <a href="https://www.inaturalist.org/observations?taxon_id=${taxonId}&quality_grade=research" target="_blank">ver todas en iNaturalist →</a>`;
+      `${obs.length} obs. mostradas${total>200?' de '+total.toLocaleString():''} (research grade, Sudamérica) · <a href="https://www.inaturalist.org/observations?taxon_id=${taxonId}&quality_grade=research&place_id=97389" target="_blank">ver todas en iNaturalist →</a>`;
 
     // Fit map to markers if any
     if(obs.length>0){
