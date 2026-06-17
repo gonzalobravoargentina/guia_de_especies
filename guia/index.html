@@ -532,7 +532,7 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip on" data-zona="all">Todos</button>
       <button class="chip" data-zona="intermareal">🌊 Intermareal</button>
       <button class="chip" data-zona="submareal">🤿 Submareal</button>
-      <button class="chip" data-zona="Columna de agua">〰️ Columna de agua</button>
+      <button class="chip" data-zona="columna de agua">〰️ Columna de agua</button>
     </div>
   </div>
   <!-- Row 2: Tipo de fondo -->
@@ -695,7 +695,8 @@ const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','
   'crustáceos','cangrejos','cirripedios','camarones','poliquetos','cnidarios','esponjas','briozoos','tunicados',
   'anélidos','cefalópodos','hidrozoos','anemonas','corales','octocorales','medusas','placoforos',
   'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
-  'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
+  'picnogónidos','ofiuras','holoturias','crinoideos','asteroideos','equinoideos',
+  'ctenophora','ctenóforos','ctenoforos']);
 const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
 const PEZ = new Set(['peces','pez','elasmobranquios','condricties','actinopterigios']);
 
@@ -708,6 +709,8 @@ const TAG_NORM = {
   'cefalopodos':'cefalópodos',
   // Crustáceos
   'crustaceos':'crustáceos',
+  // Ctenóforos
+  'ctenoforos':'ctenóforos',
   // Algas — variantes comunes
   'algas rojas':'rodofitas', 'alga roja':'rodofitas', 'rojas':'rodofitas', 'roja':'rodofitas',
   'algas verdes':'clorofitas','alga verde':'clorofitas','verdes':'clorofitas','verde':'clorofitas',
@@ -765,6 +768,7 @@ const SCOL = {
   'rodofitas':'#c0304a','clorofitas':'#2ea04a','feofitas':'#8a6020',
   'anemonas':'#e84040','octocorales':'#e87040','medusas':'#88b0ee','hidrozoos':'#a090ee',
   'cangrejos':'#d47a20','camarones':'#e8a060','cirripedios':'#b09040',
+  'ctenophora':'#60c8b0','ctenóforos':'#60c8b0','ctenoforos':'#60c8b0',
   'anélidos':'#30c0a0','cefalópodos':'#6070c8','placoforos':'#b09060',
 };
 // Helper: color lookup case-insensitive
@@ -808,7 +812,7 @@ let leafMap   = null;
 /* ────────────────────────────────────────────────
    TAG HELPERS
 ──────────────────────────────────────────────── */
-const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=',''));
+const zonas  = t => (t.tag_list||[]).filter(x=>x.startsWith('zona=')).map(x=>x.replace('zona=','').toLowerCase());
 const fondos = t => (t.tag_list||[]).filter(x=>x.toLowerCase().startsWith('fondo=')).map(x=>x.replace(/fondo=/i,'').toLowerCase().trim());
 const gtags = t => (t.tag_list||[]).filter(x=>!x.startsWith('zona=')&&!x.toLowerCase().startsWith('fondo='));
 const sci   = t => t.name || t.display_name || '';
