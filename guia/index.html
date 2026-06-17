@@ -714,8 +714,9 @@ const SUBGROUP_PARENT = {
   'crinoideos':    'equinodermos',
   'asteroideos':   'equinodermos',
   'equinoideos':   'equinodermos',
-  // Cnidarios
+  // Cnidarios (con y sin tilde)
   'anemonas':      'cnidarios',
+  'anémonas':      'cnidarios',
   'octocorales':   'cnidarios',
   'medusas':       'cnidarios',
   'corales':       'cnidarios',
@@ -804,6 +805,9 @@ function mainG(t) {
   }
   return 'Invertebrados';
 }
+// Tags de algas específicos (tienen prioridad sobre 'algas' genérico)
+const ALG_SPECIFIC = new Set(['rodofitas','clorofitas','feofitas']);
+
 // Nivel 2: devuelve el grupo padre si la especie tiene un tag hijo
 // ej: 'gasterópodos' → 'moluscos', 'ofiuras' → 'equinodermos'
 function subG(t) {
@@ -811,6 +815,7 @@ function subG(t) {
   for (const tag of gtags(t)) {
     const tl = tag.toLowerCase();
     if (SUBGROUP_PARENT[tl]) return SUBGROUP_PARENT[tl]; // mapear al padre
+    if (ALG_SPECIFIC.has(tl)) return tl;                 // alga específica tiene prioridad
     if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tl;
   }
   return general;
