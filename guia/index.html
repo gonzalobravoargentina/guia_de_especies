@@ -147,6 +147,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 
 /* search */
+.frow-search { padding: 8px 20px; }
 .swrap { margin-left: auto; position: relative; }
 .swrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .sinput {
@@ -157,6 +158,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 .sinput:focus { border-color: var(--accent); width: 250px; }
 .sinput::placeholder { color: var(--muted); }
+.sinput-full { width: 100% !important; box-sizing: border-box; }
 
 /* ================================================
    STATS
@@ -480,6 +482,8 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
   .frow { padding: 8px 12px; }
   .sinput { width: 150px; }
   .sinput:focus { width: 170px; }
+  .sinput-full { width: 100% !important; }
+  .frow-search { padding: 7px 12px; }
 }
 </style>
 </head>
@@ -512,6 +516,15 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 
 <!-- ════════════════════ FILTER BAR ════════════════════ -->
 <div class="fbar">
+  <!-- Row 0: Búsqueda -->
+  <div class="frow frow-search">
+    <div class="swrap" style="margin-left:0;flex:1">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="sinput sinput-full" id="searchInput" type="search" placeholder="Buscar por nombre científico o vulgar…">
+    </div>
+  </div>
   <!-- Row 1: Ambiente -->
   <div class="frow">
     <span class="flbl">Ambiente</span>
@@ -519,12 +532,6 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip on" data-zona="all">Todos</button>
       <button class="chip" data-zona="intermareal">🌊 Intermareal</button>
       <button class="chip" data-zona="submareal">🤿 Submareal</button>
-    </div>
-    <div class="swrap">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input class="sinput" id="searchInput" type="search" placeholder="Nombre científico o vulgar…">
     </div>
   </div>
   <!-- Row 2: Tipo de fondo -->
@@ -546,10 +553,15 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
       <button class="chip" data-main="Invertebrados"><span class="cdot" style="background:#f0964a"></span>Invertebrados</button>
     </div>
   </div>
-  <!-- Row 4: Subgrupos dinámicos (se muestra solo con Invertebrados) -->
+  <!-- Row 4: Subgrupos dinámicos -->
   <div class="sub-sep" id="subSep">
     <span class="flbl" style="opacity:.6">↳</span>
     <div class="chips" id="subChips"></div>
+  </div>
+  <!-- Row 5: Sub-subgrupos (ej: clases de equinodermos) -->
+  <div class="sub-sep" id="subSep2">
+    <span class="flbl" style="opacity:.4">↳↳</span>
+    <div class="chips" id="subChips2"></div>
   </div>
 </div>
 
@@ -709,8 +721,14 @@ let fZona     = 'all';
 let fFondo    = 'all';
 let fMain     = 'all';
 let fSub      = 'all';
+let fSub2     = 'all';  // tercer nivel (ej: clases de equinodermos)
 let q         = '';
 let leafMap   = null;
+
+// Subgrupos que tienen hijos (tercer nivel)
+const SUBGROUP_CHILDREN = {
+  'equinodermos': ['ofiuras','holoturias','asteroideos','equinoideos','crinoideos']
+};
 
 /* ────────────────────────────────────────────────
    TAG HELPERS
@@ -729,19 +747,27 @@ function mainG(t) {
   }
   return 'Invertebrados';
 }
-// Echinoderm subclasses — more specific than generic 'equinodermos'
 const ECHINODERM_CLASSES = new Set(['ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
-// When filtering by 'equinodermos', include all echinoderm subclasses too
-const ECHINODERM_ALL = new Set([...ECHINODERM_CLASSES, 'equinodermos']);
+const ECHINODERM_ALL     = new Set([...ECHINODERM_CLASSES, 'equinodermos']);
 
+// Nivel 2: equinodermos agrupa todas sus clases
 function subG(t) {
   let general = null;
   for (const tag of gtags(t)) {
     const tl = tag.toLowerCase();
-    if (ECHINODERM_CLASSES.has(tl)) return tag; // prefer specific class over 'equinodermos'
+    if (ECHINODERM_CLASSES.has(tl)) return 'equinodermos'; // unificar bajo el grupo padre
+    if (tl === 'equinodermos') return tag;
     if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tag;
   }
   return general;
+}
+// Nivel 3: clase específica dentro de equinodermos (ofiuras, holoturias, etc.)
+function subGClass(t) {
+  for (const tag of gtags(t)) {
+    const tl = tag.toLowerCase();
+    if (ECHINODERM_CLASSES.has(tl)) return tl;
+  }
+  return null;
 }
 
 /* ────────────────────────────────────────────────
@@ -818,6 +844,13 @@ document.getElementById('subChips').addEventListener('click', e => {
   const b = e.target.closest('[data-sub]'); if(!b) return;
   fSub = b.dataset.sub;
   setOn('subChips','[data-sub]','sub',fSub);
+  buildSubSubChips(fSub === 'all' ? null : fSub);
+  renderGrid();
+});
+document.getElementById('subChips2').addEventListener('click', e => {
+  const b = e.target.closest('[data-sub2]'); if(!b) return;
+  fSub2 = b.dataset.sub2;
+  setOn('subChips2','[data-sub2]','sub2',fSub2);
   renderGrid();
 });
 document.getElementById('searchInput').addEventListener('input', e => {
@@ -835,14 +868,37 @@ function buildSubChips(main) {
   const sep  = document.getElementById('subSep');
   const wrap = document.getElementById('subChips');
   wrap.innerHTML = '';
+  buildSubSubChips(null); // reset level 3
   if (main==='all'||main==='Algas'||main==='Peces') { sep.classList.remove('active'); return; }
   const map = new Map();
-  taxa.forEach(t => { if(mainG(t)===main){ const s=subG(t); if(s) map.set(s,(map.get(s)||0)+1); } });
+  taxa.forEach(t => { if(mainG(t)===main){ const s=subG(t); if(s) { const key=s.toLowerCase(); map.set(key,(map.get(key)||0)+1); } } });
   if (map.size < 2) { sep.classList.remove('active'); return; }
   sep.classList.add('active');
   wrap.appendChild(mkChip('Todos','sub','all',true,null));
   [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([sub,cnt]) => {
     wrap.appendChild(mkChip(`${sub} <small style="opacity:.55">${cnt}</small>`,'sub',sub,false,scol(sub)||'#888'));
+  });
+}
+
+function buildSubSubChips(sub) {
+  const sep2  = document.getElementById('subSep2');
+  const wrap2 = document.getElementById('subChips2');
+  wrap2.innerHTML = '';
+  fSub2 = 'all';
+  if (!sub || !SUBGROUP_CHILDREN[sub.toLowerCase()]) { sep2.classList.remove('active'); return; }
+  const children = SUBGROUP_CHILDREN[sub.toLowerCase()];
+  // Count species per child class
+  const map = new Map();
+  taxa.forEach(t => {
+    const cl = subGClass(t);
+    if (cl && children.includes(cl)) map.set(cl, (map.get(cl)||0)+1);
+  });
+  if (map.size === 0) { sep2.classList.remove('active'); return; }
+  sep2.classList.add('active');
+  wrap2.appendChild(mkChip('Todos','sub2','all',true,null));
+  children.forEach(cl => {
+    const cnt = map.get(cl)||0;
+    if (cnt > 0) wrap2.appendChild(mkChip(`${cl} <small style="opacity:.55">${cnt}</small>`,'sub2',cl,false,scol(cl)||'#888'));
   });
 }
 function mkChip(html,attr,val,on,color) {
@@ -861,11 +917,15 @@ function filtered() {
     if (fZona !=='all' && !zonas(t).includes(fZona))   return false;
     if (fFondo!=='all' && !fondos(t).includes(fFondo)) return false;
     if (fMain!=='all' && mainG(t)!==fMain) return false;
-    if (fSub !=='all') {
-      const sg = (subG(t)||'').toLowerCase();
+    if (fSub !== 'all') {
+      const sg  = (subG(t)||'').toLowerCase();
       const fsb = fSub.toLowerCase();
-      // 'equinodermos' filter includes all echinoderm subclasses
-      if (fsb === 'equinodermos' ? !ECHINODERM_ALL.has(sg) : sg !== fsb) return false;
+      if (sg !== fsb) return false;
+      // Tercer nivel: clase específica dentro del subgrupo
+      if (fSub2 !== 'all') {
+        const cl = subGClass(t);
+        if (!cl || cl !== fSub2.toLowerCase()) return false;
+      }
     }
     if (q) {
       const s = sci(t).toLowerCase();
