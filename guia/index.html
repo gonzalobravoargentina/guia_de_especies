@@ -470,6 +470,13 @@ hr.spdiv { border: none; border-top: 1px solid var(--border); }
 #spMap { height: 360px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
 .mapnote { font-size: .68rem; color: var(--muted); margin-top: 7px; text-align: right; }
 .mapnote a { color: var(--accent); }
+/* Leaflet popup — dark theme */
+.inat-popup .leaflet-popup-content-wrapper {
+  background: #0e1e30; border: 1px solid #1e3a50;
+  border-radius: 10px; color: #cdd9e5; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.inat-popup .leaflet-popup-tip { background: #0e1e30; }
+.inat-popup .leaflet-popup-content { margin: 10px 12px; }
 
 /* Co-occurrence section */
 .cooc-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border); margin-bottom: 22px; }
@@ -1495,19 +1502,64 @@ async function loadWiki(name) {
 /* ────────────────────────────────────────────────
    LEAFLET MAP
 ──────────────────────────────────────────────── */
-function initMap(taxonId) {
+async function initMap(taxonId) {
   if(!window.L) return;
   if(leafMap){leafMap.remove();leafMap=null;}
-  leafMap=L.map('spMap',{zoomControl:true}).setView([-40,-62.5],4);
+  leafMap = L.map('spMap',{zoomControl:true}).setView([-40,-62.5],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:18
   }).addTo(leafMap);
-  L.tileLayer(`https://api.inaturalist.org/v1/colored_heatmap/{z}/{x}/{y}.png?taxon_id=${taxonId}`,{
-    attribution:'© iNaturalist',opacity:.9,maxZoom:18
-  }).addTo(leafMap);
   setTimeout(()=>leafMap?.invalidateSize(),120);
-  document.getElementById('mapNote').innerHTML=
-    `Observaciones verificadas (research grade) · <a href="https://www.inaturalist.org/observations?taxon_id=${taxonId}&place_id=7033&quality_grade=research" target="_blank">ver en Argentina →</a>`;
+
+  document.getElementById('mapNote').innerHTML='Cargando observaciones…';
+
+  try {
+    // Fetch up to 200 research-grade observations (Argentina + alrededores)
+    const url = `${V1_API}/observations?taxon_id=${taxonId}&quality_grade=research&per_page=200&order=desc&order_by=created_at&geoprivacy=open`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const obs = (d.results||[]).filter(o=>o.geojson);
+
+    obs.forEach(o => {
+      const [lng,lat] = o.geojson.coordinates;
+      const date = o.observed_on || o.time_observed_at?.slice(0,10) || '';
+      const place = o.place_guess || '';
+      const user  = o.user?.login || '';
+      const thumb = o.photos?.[0]?.url?.replace('square','thumb') || '';
+      const obsUrl = `https://www.inaturalist.org/observations/${o.id}`;
+
+      const marker = L.circleMarker([lat,lng],{
+        radius: 6, color:'#00b4d8', weight:1.5,
+        fillColor:'#00b4d8', fillOpacity:.55
+      });
+
+      const popupHtml = `
+        <div style="min-width:160px;font-family:inherit">
+          ${thumb ? `<img src="${thumb}" style="width:100%;border-radius:6px;margin-bottom:6px;display:block">` : ''}
+          <div style="font-size:.75rem;color:#aaa;margin-bottom:2px">${date}${place?' · '+place:''}</div>
+          ${user ? `<div style="font-size:.73rem;color:#ccc;margin-bottom:6px">@${user}</div>` : ''}
+          <a href="${obsUrl}" target="_blank"
+             style="display:block;text-align:center;background:#00b4d8;color:#fff;border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:700;text-decoration:none">
+            Ver en iNaturalist ↗
+          </a>
+        </div>`;
+
+      marker.bindPopup(popupHtml, {maxWidth:200, className:'inat-popup'});
+      marker.addTo(leafMap);
+    });
+
+    const total = d.total_results||obs.length;
+    document.getElementById('mapNote').innerHTML =
+      `${obs.length} obs. mostradas${total>200?' de '+total.toLocaleString():''} (research grade) · <a href="https://www.inaturalist.org/observations?taxon_id=${taxonId}&quality_grade=research" target="_blank">ver todas en iNaturalist →</a>`;
+
+    // Fit map to markers if any
+    if(obs.length>0){
+      const latLngs = obs.map(o=>{const[lng,lat]=o.geojson.coordinates;return[lat,lng];});
+      leafMap.fitBounds(L.latLngBounds(latLngs).pad(.15));
+    }
+  } catch(e) {
+    document.getElementById('mapNote').innerHTML='No se pudieron cargar las observaciones.';
+  }
 }
 
 /* ────────────────────────────────────────────────
