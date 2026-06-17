@@ -105,14 +105,24 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 .frow {
   display: flex; align-items: center; gap: 8px;
-  padding: 9px 20px; flex-wrap: wrap;
+  padding: 9px 20px; overflow: hidden;
 }
 .frow + .frow { border-top: 1px solid rgba(26,48,80,.55); }
 .flbl {
   font-size: .64rem; text-transform: uppercase; letter-spacing: 1.6px;
-  color: var(--muted2); min-width: 66px; flex-shrink: 0;
+  color: var(--muted2); min-width: 56px; flex-shrink: 0;
 }
-.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips {
+  display: flex; flex-wrap: nowrap; gap: 5px;
+  flex: 1; min-width: 0;
+  overflow-x: auto; overflow-y: visible;
+  scrollbar-width: none; -ms-overflow-style: none;
+  /* right fade hint */
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  padding-right: 20px;
+}
+.chips::-webkit-scrollbar { display: none; }
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 13px; border-radius: 20px;
