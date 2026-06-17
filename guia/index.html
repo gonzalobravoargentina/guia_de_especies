@@ -690,7 +690,7 @@ const INAT_TAXON = 'https://www.inaturalist.org/taxa/';
 
 /* Tags that map to each top-level group */
 // All sets in lowercase — comparison uses tag.toLowerCase()
-const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos',
+const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos','moluscos',
   'crustáceos','poliquetos','cnidarios','esponjas','briozoos','tunicados',
   'anélidos','cefalópodos','hidrozoos','anemonas','corales','placoforos',
   'sipuncúlidos','nemertinos','turbelarios','polplacoforos','quitones',
@@ -698,13 +698,47 @@ const INV = new Set(['nudibranquios','gasterópodos','bivalvos','equinodermos',
 const ALG = new Set(['algas','macroalgas','alga','clorofitas','rodofitas','feofitas']);
 const PEZ = new Set(['peces','pez','elasmobranquios','condricties','actinopterigios']);
 
+// Jerarquía taxonómica: hijo → padre (nivel 2 → nivel 3 aparece al seleccionar padre)
+const SUBGROUP_PARENT = {
+  // Moluscos
+  'gasterópodos':  'moluscos',
+  'nudibranquios': 'moluscos',
+  'bivalvos':      'moluscos',
+  'cefalópodos':   'moluscos',
+  'placoforos':    'moluscos',
+  'quitones':      'moluscos',
+  'polplacoforos': 'moluscos',
+  // Equinodermos
+  'ofiuras':       'equinodermos',
+  'holoturias':    'equinodermos',
+  'crinoideos':    'equinodermos',
+  'asteroideos':   'equinodermos',
+  'equinoideos':   'equinodermos',
+  // Cnidarios
+  'anemonas':      'cnidarios',
+  'corales':       'cnidarios',
+  'hidrozoos':     'cnidarios',
+  // Anélidos
+  'poliquetos':    'anélidos',
+};
+
+// Inverso: padre → lista ordenada de hijos (para buildSubSubChips)
+const SUBGROUP_CHILDREN = {
+  'moluscos':      ['gasterópodos','nudibranquios','bivalvos','cefalópodos','placoforos','quitones'],
+  'equinodermos':  ['ofiuras','holoturias','asteroideos','equinoideos','crinoideos'],
+  'cnidarios':     ['anemonas','corales','hidrozoos'],
+  'anélidos':      ['poliquetos'],
+};
+
 const SCOL = {
   'nudibranquios':'#9b59d1','gasterópodos':'#d4a017','bivalvos':'#1a7abf',
-  'equinodermos':'#d44c4c','crustáceos':'#d47a20','poliquetos':'#20b2aa',
-  'cnidarios':'#7b68ee','esponjas':'#c88030','briozoos':'#4caf7a',
-  'tunicados':'#a050c0','algas':'#56c96e','peces':'#4ca3e8',
+  'equinodermos':'#d44c4c','moluscos':'#c8860a','crustáceos':'#d47a20',
+  'poliquetos':'#20b2aa','cnidarios':'#7b68ee','esponjas':'#c88030',
+  'briozoos':'#4caf7a','tunicados':'#a050c0','algas':'#56c96e','peces':'#4ca3e8',
   'holoturias':'#e67e5a','ofiuras':'#e84393','asteroideos':'#e8a000',
   'equinoideos':'#b22222','crinoideos':'#c060a0',
+  'anemonas':'#e84040','corales':'#e87040','hidrozoos':'#a090ee',
+  'anélidos':'#30c0a0','cefalópodos':'#6070c8','placoforos':'#b09060',
 };
 // Helper: color lookup case-insensitive
 const scol = tag => tag ? (SCOL[tag.toLowerCase()] || 'var(--accent)') : 'var(--accent)';
@@ -725,10 +759,6 @@ let fSub2     = 'all';  // tercer nivel (ej: clases de equinodermos)
 let q         = '';
 let leafMap   = null;
 
-// Subgrupos que tienen hijos (tercer nivel)
-const SUBGROUP_CHILDREN = {
-  'equinodermos': ['ofiuras','holoturias','asteroideos','equinoideos','crinoideos']
-};
 
 /* ────────────────────────────────────────────────
    TAG HELPERS
@@ -747,25 +777,22 @@ function mainG(t) {
   }
   return 'Invertebrados';
 }
-const ECHINODERM_CLASSES = new Set(['ofiuras','holoturias','crinoideos','asteroideos','equinoideos']);
-const ECHINODERM_ALL     = new Set([...ECHINODERM_CLASSES, 'equinodermos']);
-
-// Nivel 2: equinodermos agrupa todas sus clases
+// Nivel 2: devuelve el grupo padre si la especie tiene un tag hijo
+// ej: 'gasterópodos' → 'moluscos', 'ofiuras' → 'equinodermos'
 function subG(t) {
   let general = null;
   for (const tag of gtags(t)) {
     const tl = tag.toLowerCase();
-    if (ECHINODERM_CLASSES.has(tl)) return 'equinodermos'; // unificar bajo el grupo padre
-    if (tl === 'equinodermos') return tag;
-    if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tag;
+    if (SUBGROUP_PARENT[tl]) return SUBGROUP_PARENT[tl]; // mapear al padre
+    if (!general && (INV.has(tl)||ALG.has(tl)||PEZ.has(tl))) general = tl;
   }
   return general;
 }
-// Nivel 3: clase específica dentro de equinodermos (ofiuras, holoturias, etc.)
+// Nivel 3: clase específica si el tag es un hijo conocido
 function subGClass(t) {
   for (const tag of gtags(t)) {
     const tl = tag.toLowerCase();
-    if (ECHINODERM_CLASSES.has(tl)) return tl;
+    if (SUBGROUP_PARENT[tl]) return tl;
   }
   return null;
 }
